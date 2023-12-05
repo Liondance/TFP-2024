@@ -81,7 +81,7 @@ global :: State -> Global
 global (_, g) = g
 
 
--- State Monad
+-- State Monad (is it?)
 
 -- given a state, a transformer returns a pair with the new state
 newtype ST a = S (State -> (a, State))
@@ -198,21 +198,24 @@ apply (stack, global) (Lambda lty (Sym symbol) exp) arg = do
     let gamma' = (stack', global)
     rvalue gamma' exp
 
--- rvalue Apply alternatives
+{-
+
+-- rvalue Apply alternatives (not correct - for debugging only)
 
 rvalueX gamma (Apply fun arg) = do
     fun' <- rvalue gamma fun
     arg' <- rvalue gamma arg
     apply gamma fun' arg'
 
-rvalueA gamma (Apply fun arg) = do
+rvalueY gamma (Apply fun arg) = do
     arg' <- rvalue gamma arg
     fun' <- rvalue gamma fun
     case fun' of
         (Lambda _ _ _) -> apply gamma fun' arg'
         otherwise -> Just (Apply fun' arg')
+-}
 
-rvalueS gamma (Apply fun arg) = do
+rvalueA gamma (Apply fun arg) = do
     arg' <- rvalue gamma arg
     fun' <- rvalue gamma fun
     case fun' of
@@ -220,6 +223,15 @@ rvalueS gamma (Apply fun arg) = do
             let exp' = substitute gamma par arg' exp
             rvalue gamma exp'
         otherwise -> Just (Apply fun' arg')
+        -- otherwise IS relevent for (future) lazy-ness propagation:
+        --   'f'(a) =bs=> f(rv(a)) =bs=> rv(f)(rv(rv(a)))
+        --   'inc'(6 * 7 - 1) =rv=> inc(41) =rv=> 42
+        -- the paper will mention lazy-ness propagation ...
+        -- ... but most likely we won't have time to formalize the semantic 
+        -- we should remove the otherwise clause, unless we formalize it
+        -- FYI, besides LP there is another eval generalization we are exploring:
+        -- alternating RV and XV (leaving eXp intact) for controlled partial evaluation.
+        -- We don't know yet if these ideas are "good"
 
 -- rvalue
 rvalue :: State -> E -> Maybe E
@@ -234,8 +246,8 @@ rvalue gamma (Sym s) = let cv = cvalue gamma (Sym s) in
 rvalue gamma (Lambda lty x exp) = Just (Lambda lty x exp)
 
 -- rvalue gamma (Apply fun arg) = rvalueX gamma (Apply fun arg)
--- rvalue gamma (Apply fun arg) = rvalueA gamma (Apply fun arg)
-rvalue gamma (Apply fun arg) = rvalueS gamma (Apply fun arg)
+-- rvalue gamma (Apply fun arg) = rvalueY gamma (Apply fun arg)
+rvalue gamma (Apply fun arg) = rvalueA gamma (Apply fun arg)
 
 rvalue gamma (If (predicate, x, y)) =
     let p = rvalue gamma predicate in
