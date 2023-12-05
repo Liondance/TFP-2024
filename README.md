@@ -1,2 +1,3 @@
 # TFP-2024
-TFP-2024
+
+Repository for the TFP-2024 conference. Work in progress ...
