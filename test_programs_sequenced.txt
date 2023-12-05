@@ -1,0 +1,25 @@
+[ -- Base Program
+        
+        <Z -> Z> chs := <Z> x -> minus(0)(x);
+        <Z -> (Z -> Z)> plus := (<Z> x -> (<Z> y -> minus(x)(chs(y))));
+        <Z> x := 7;
+        <Z> y := 8;
+        <Z> q := plus(x)(y);
+        .show(q);                        -- imprime: q ==> 15
+        <lazy Z> z := 'plus(x)(y)';
+        .show(z);                        -- imprime: z ==> 15
+        x := plus(x)(1);
+        .show(q);                        -- imprime: q ==> 15
+        .show(z);                        -- imprime: z ==> 16
+]
+
+
+[ -- Zilly little program
+  <(Z -> Z) -> Z> apply := <Z->Z> f -> <Z> x -> f(x);
+  <Z -> Z>        chs   := <Z> x -> minus(0)(x);
+  <Z -> Z -> Z>   plus  :=  <Z> x -> <Z> y -> minus(x)(chs(y));
+  <Z>             zero  := 0;
+  <Z>             one   := plus(1)(zero);
+  <Z>             oneP  := plus(zero)(1); 
+  <Z>             onePP := apply(apply(plus)(1))(0)
+]
