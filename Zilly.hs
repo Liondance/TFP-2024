@@ -25,26 +25,26 @@ data T =
       Z                 -- integer type: Z
     | Fun T T           -- function type: <type> -> <type>
     | Lazy T            -- lazy type: lazy <type>
-    deriving Show
+    deriving (Eq,Show)
 
 -- Expressions
 data E =
       Val Z             -- integer values: 0, 1, .., 10, 11, .. 42 ..
     | Sym Symbol        -- var names, i.e. user defined symbols: a, b, .. x, y, .. zarzuela, ..
-    | Lambda T E E      -- <type> <symbol> -> <exp>: (Z -> Z) x -> minus(x)(minus(0)(1))
-    | Apply E E         -- function application <exp>(<exp>): ((Z -> Z) x -> minus(x)(minus(0)(1)))(41)
+    | Lambda T E E      -- <type> <symbol> -> <exp>: <Z -> Z> x -> minus(x)(minus(0)(1))
+    | Apply E E         -- function application <exp>(<exp>): (<Z -> Z> x -> minus(x)(minus(0)(1)))(41)
     | If (E, E, E)      -- conditional expression: if(<exp>,<exp>,<exp>): if(lt(x)(y), x, y)
     | Defer E           -- deferred expression '<exp>': 'uniform(0)(1)'
     | Less E E          -- less than (lt predefined function): lt(x)(y) =<>=> x < y
     | Minus E E         -- subtraction (minus predefined function): minus(x)(y) =<>=> x - y
-    deriving Show
+    deriving (Eq,Show)
 
 -- Statements
 data Statement = 
       Define T E E      -- <type> <symbol> := <expression>;
     | Assign E E        -- <symbol> := <expression>;
-    | Show (String, E)  -- magic form: show(<string>, <exp>) prints <string> ==> rvalue(<exp>)
-    deriving Show
+    | Show  String E    -- magic form: show(<string>, <exp>) prints <string> ==> rvalue(<exp>)
+    deriving (Eq,Show)
 
 -- Program
 type Program = [Statement]
@@ -292,3 +292,38 @@ run' store (action:actions) =
     run' store' actions
 
 run prog = run' empty prog
+
+------------------------------
+-- pretty printers           |
+------------------------------
+
+
+mkParens :: Bool -> String -> String
+mkParens b s = if b then "(" <> s <> ")" else s
+
+prettyType :: T -> String
+prettyType = prettyType' ((-1) :: Float)
+  where 
+    prettyType' _ Z = "Z"
+    prettyType' pPrec (Lazy y) = mkParens (pPrec > 3) $ "lazy " <> prettyType' 3 y 
+    prettyType' pPrec (Fun left@(Fun _ _) right) 
+      = mkParens (pPrec > 2) $ prettyType' 2.1 left <> " -> " <> prettyType' 2 right
+    prettyType' pPrec (Fun left right) 
+      = mkParens (pPrec > 2) $ prettyType' 2 left <> " -> " <> prettyType' 2 right
+
+prettyExp :: E -> String
+prettyExp = prettyExp'
+  where
+    -- no parent precedence argument since it's just easier to paren by hand
+    -- parent decides if child is paren
+    prettyExp' (Val n)        = show n
+    prettyExp' (Sym v)        = v
+    prettyExp' (Minus x y)    = "minus" <> mkParens True (prettyExp' x) <> mkParens True (prettyExp' y)
+    prettyExp' (Less x y)     = "lt" <> mkParens True (prettyExp' x) <> mkParens True (prettyExp' y)
+    prettyExp' (If (b,x,y))   = "if" <> mkParens True (prettyExp' b <> ", " <> prettyExp' x <> ", " <> prettyExp' y)
+    prettyExp' (Defer e)      = "'" <> prettyExp' e <> "'"
+    prettyExp' (Apply(Sym f) e)        = f <> mkParens True (prettyExp' e)
+    prettyExp' (Apply(Defer f) e)      = prettyExp' f <> mkParens True (prettyExp' e)
+    prettyExp' (Apply f@(Apply _ _) e) = prettyExp' f <> mkParens True (prettyExp' e)
+    prettyExp' (Apply f e)    = mkParens True (prettyExp' f) <> mkParens True (prettyExp' e)
+    prettyExp' (Lambda t v e) =  "<" <> prettyType t <> "> " <> prettyExp' v <> " -> " <> prettyExp' e 

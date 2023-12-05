@@ -4,10 +4,10 @@
         <Z> x := 7;
         <Z> y := 8;
         <Z> q := plus(x)(y);
-        .show(q);                        -- imprime: q ==> 15
+        .show("q ==> ",q);                        -- imprime: q ==> 15
         <lazy Z> z := 'plus(x)(y)';
-        .show(z);                        -- imprime: z ==> 15
+        .show("z ==> ",z);                        -- imprime: z ==> 15
         x := plus(x)(1);
-        .show(q);                        -- imprime: q ==> 15
-        .show(z);                        -- imprime: z ==> 16
+        .show("q ==> ",q);                        -- imprime: q ==> 15
+        .show("z ==> ",z);                        -- imprime: z ==> 16
 ]
