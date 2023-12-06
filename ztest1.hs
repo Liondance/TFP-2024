@@ -106,7 +106,11 @@ prog7 =
 
         Define (Fun Z Z) (Sym "dec") (Apply (Sym "sub") (Val 1)),
         Define    Z      (Sym "x67") (Apply (Sym "dec") (Val 68)),
-        Define    Z      (Sym "x42") (Apply (Apply (Sym "sub") (Val 25)) (Sym "x67"))
+        Define    Z      (Sym "x42") (Apply (Apply (Sym "sub") (Val 25)) (Sym "x67")),
+
+        Halt,
+        Define    Z      (Sym "x00") (Val 0),
+        Halt
     ]
 
 prog8 =
