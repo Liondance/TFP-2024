@@ -29,12 +29,12 @@ Here is a sample session running test programs 6 and 7.
 
 ### Daniel
 
-    1. Make your code compile (it does not for me) with no unknown dependencies
-    2. Your test program (ztest2) should import the interpreter (zilly)
-    3. Eliminate/rename zdani1/zdani2: there should be only one ztest2 
-    4. Judges will test running *ghci ztest1* or *ghci ztest2*, at their choice
+    1. Make your code compile (it does not for me) with no unknown dependencies **PENDING FOR TESTING**
+    2. Your test program (ztest2) should import the interpreter (zilly) **DONE**
+    3. Eliminate/rename zdani1/zdani2: there should be only one ztest2  **DONE**
+    4. Judges will test running *ghci ztest1* or *ghci ztest2*, at their choice **DONE**
     5. After you make this work cleanly, we will look into sample tests
-    6. Please factor out Map code (zilly.hs: lines 12-27) as an ADT.Map module
+    6. Please factor out Map code (zilly.hs: lines 12-27) as an ADT.Map module **DONE**
     7. ¡Animo! If I don't mess up we will qualify for post-symposium review
 
 ### Cody's suggestions
