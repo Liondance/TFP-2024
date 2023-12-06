@@ -50,6 +50,7 @@ data E =
     | Defer E           -- deferred expression '<exp>': 'uniform(0)(1)'
     | Less E E          -- less than (lt predefined function): lt(x)(y) =<>=> x < y
     | Minus E E         -- subtraction (minus predefined function): minus(x)(y) =<>=> x - y
+    | Formula E
     deriving Show
 
 -- Statements
@@ -245,6 +246,8 @@ rvalue gamma (Minus lhs rhs) = do
     l <- rvalue gamma lhs
     r <- rvalue gamma rhs
     Just (minus l r)
+
+rvalue gamma (Formula x) = cvalue gamma x
 
 less :: E -> E -> E
 less (Val x) (Val y) = if x < y then Val 1 else Val 0
