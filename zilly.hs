@@ -67,14 +67,11 @@ type Program = [Statement]
 --
 
 type Binding = (T, Symbol, E)
+type Global  = Map Symbol Binding
+type Local   = Stack Binding
+type State   = (Local, Global)
 
-type K = Symbol
-type V = Binding
-type Frame = Map K V
-type Global = Frame
-type State = (Stack Frame, Global)
-
-stack :: State -> Stack Frame
+stack :: State -> Local
 stack (s, _) = s
 
 global :: State -> Global
@@ -112,23 +109,18 @@ instance Monad ST where
 
 -- context lookup
 
-frame'lookup :: Frame -> Symbol -> Maybe Binding
-frame'lookup frame symbol =
-    let binding = lookup frame symbol in
+global'lookup :: Global -> Symbol -> Maybe Binding
+global'lookup global symbol =
+    let binding = lookup global symbol in
         case binding of
             Nothing -> Nothing
             Just _ -> binding
 
-stack'lookup :: Stack Frame -> Symbol -> Maybe Binding
+stack'lookup :: Local -> Symbol -> Maybe Binding
 stack'lookup Empty _ = Nothing
-stack'lookup (Top frame under) symbol =
-    let binding = frame'lookup frame symbol in
-        case binding of
-            Nothing -> stack'lookup under symbol
-            Just _ -> binding
-
-global'lookup :: Global -> Symbol -> Maybe Binding
-global'lookup = frame'lookup
+stack'lookup (Top binding under) symbol =
+    let (lty, sym, val) = binding in
+    if sym == symbol then stack'lookup under symbol else Just binding
 
 state'lookup :: State -> Symbol -> Maybe Binding
 state'lookup (stack, global) symbol =
@@ -194,7 +186,7 @@ substitute gamma (Sym r) arg (Minus lhs rhs) =
 -- apply
 apply :: State -> E -> E -> Maybe E
 apply (stack, global) (Lambda lty (Sym symbol) exp) arg = do
-    let stack' = push stack (insert Map.empty symbol (lty, symbol, arg))
+    let stack' = push stack (lty, symbol, arg)
     let gamma' = (stack', global)
     rvalue gamma' exp
 
