@@ -29,4 +29,11 @@
   .show("one ==> ", one);
   .show("oneP ==> ", oneP);
   .show("onePP ==> ", onePP);
+  .show("formula apply ==>",formula(apply));
+  .show("formula chs ==>",formula(chs));
+  .show("formula plus ==>",formula(plus));
+  .show("formula zero ==>",formula(zero));
+  .show("formula one ==>",formula(one));
+  .show("formula oneP ==>",formula(oneP));
+  .show("formula onePP ==>",formula(onePP));
 ]

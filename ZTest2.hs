@@ -73,6 +73,10 @@ pLess p = lexeme' "lt" *> (Less <$> parens p <*> parens p)
 pMinus :: Monad m => Parser m E -> Parser m E
 pMinus p = lexeme' "minus" >> Minus <$> parens p <*> parens p
 
+-- | Parses a 'formula' function application
+pFormula :: Monad m => Parser m E -> Parser m E 
+pFormula p = lexeme' "formula" >> Formula <$> parens p
+
 -- | Parses an expression
 pExpression :: Monad m => Parser m E
 pExpression =  p3
@@ -83,6 +87,7 @@ pExpression =  p3
     p1 = asum [pDefer pExpression,base]
     p2 = asum
       [ pLess pExpression
+      , pFormula pExpression
       , pMinus pExpression
       , pIf pExpression
       , pApply p1 pExpression 
@@ -134,7 +139,7 @@ postfix  op p =  p <**> pipeline
 
 -- | Statement list of reserved words
 reservedWords :: [String]
-reservedWords = ["Z","lazy","if","lt","minus","show"]
+reservedWords = ["Z","lazy","if","lt","minus","show","formula"]
 
 -- | Statement way of making a parser a lexeme
 lexeme :: Monad m => Parser m a -> Parser m a

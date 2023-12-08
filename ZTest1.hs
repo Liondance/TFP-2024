@@ -1,4 +1,4 @@
-module ZTest1 where
+module Zilly'Test where
 
 import Zilly
 
@@ -106,7 +106,11 @@ prog7 =
 
         Define (Fun Z Z) (Sym "dec") (Apply (Sym "sub") (Val 1)),
         Define    Z      (Sym "x67") (Apply (Sym "dec") (Val 68)),
-        Define    Z      (Sym "x42") (Apply (Apply (Sym "sub") (Val 25)) (Sym "x67"))
+        Define    Z      (Sym "x42") (Apply (Apply (Sym "sub") (Val 25)) (Sym "x67")),
+
+        Halt,
+        Define    Z      (Sym "x00") (Val 0),
+        Halt
     ]
 
 prog8 =
@@ -122,16 +126,22 @@ prog8 =
 prog9 =
     [
         Define (Fun Z Z) (Sym "chs") (
-            Lambda Z (Sym "a") (Minus (Val 0) (Sym "a"))
+            Lambda Z (Sym "x") (Minus (Val 0) (Sym "x"))
         ),
 
         Define (Fun Z (Fun Z Z)) (Sym "plus") (
-            Lambda Z (Sym "a") (
-                Lambda Z (Sym "b") (
-                    Minus (Sym "a") (Apply (Sym "chs") (Sym "b"))
+            Lambda Z (Sym "x") (
+                Lambda Z (Sym "y") (
+                    Minus (Sym "x") (Apply (Sym "chs") (Sym "y"))
                 )
             )
         ),
 
-        Define Z (Sym "x") (Apply (Apply (Sym "plus") (Val 42)) (Val 25))
+        Define       Z  (Sym "x") (Val 21),
+        Define       Z  (Sym "y") (Val 21),
+        Define (Lazy Z) (Sym "z") (Defer ((Apply (Apply (Sym "plus") (Sym "x")) (Sym "y")))),
+        Define       Z  (Sym "a") (Sym "z"),
+        Assign          (Sym "y") (Apply (Apply (Sym "plus") (Sym "y")) (Val 25)),
+        Define       Z  (Sym "b") (Sym "z")
+
     ]
