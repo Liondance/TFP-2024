@@ -24,9 +24,10 @@ import qualified ADT.Map as M
 import Data.Functor
 import Control.Applicative
 import Control.Monad
-import Data.Kind (Type)
+import Data.Kind (Type, Constraint)
 import Data.Dynamic
 import Data.Typeable
+import Data.Functor.Identity
 
 -- Zilly
 
@@ -39,6 +40,10 @@ type Symbol = String
 type Error = String
 
 newtype Defered a = Defered a
+
+instance Show a => Show (Defered a) where
+  show (Defered x) = "'" <> show x <> "'"
+
 newtype Var a     = Var a
 
 
@@ -54,30 +59,40 @@ data T (a :: Type) where
   Lazy :: T a -> T (Defered  a)
   Fun  :: T a -> T b -> T (a -> b)
   deriving Typeable
--- Expressions
-data E meta a  where
-  Val    :: Z        -> E MVal (T Z)
-  Sym    :: (Typeable a) => Symbol   -> T a -> E MSym (T a)
-  Lambda :: (Typeable a, Typeable b) => E MSym (T a) -> E meta (T b) -> E MLambda (T (a -> b))
-  Apply  :: (Typeable a, Typeable b) => E x (T (a -> b)) -> E y (T a) -> E MApply (T b)
-  If     :: E x0 (T Z) -> E x1 (T a) -> E x2 (T a) -> E MIf (T a)
-  Defer  :: E x (T a) -> E MDefer (T (Defered a))
-  Less   :: E x0 (T Z) -> E x1 (T Z) -> E MLess (T Z)
-  Minus  :: E x0 (T Z) -> E x1 (T Z) -> E MMinus (T Z)
-  deriving Typeable
+
+
+class Evaluable a b where
+  reduce :: a -> b
+
+instance Evaluable a a where
+  reduce = id
+instance Evaluable (Defered a) a where
+  reduce (Defered x) = x
+
+
+class ZillySym m where
+  val    :: Z -> m Z
+  sym    :: Typeable a => Symbol -> T a -> m a
+  lambda :: (Typeable a, Typeable b, Typeable c, Evaluable c a) => Symbol -> T a -> m b -> (m c -> m b)
+  ifX    :: Typeable a => m Z -> m a -> m a -> m a
+  defer  :: m a -> m (m (Defered a))
+  less   :: m Z -> m Z -> m Z
+  formula :: m a -> m a
 
 
 -- rvalue(expr) = rvalue(cvalue(expr))
-
 
 
 ----------------------------
 -- Runtime meta
 ----------------------------
 
-
+data Binding = Binding 
+  { bFormula :: Dynamic
+  , bValue   :: Dynamic
+  }
 type K   = Symbol
-type Env = Map K Dynamic
+type Env = Map K Binding
 type Err = String
 
 fmap2 :: (Functor f1, Functor f2)
@@ -139,78 +154,80 @@ instance (MonadError e m) => MonadError e (RT r m) where
     (runReaderT ma s) (\e ->  runReaderT (f e) s)
 
 
+newtype ShowInterpreter a = ShowInterpreter {getString :: String}
+  deriving (Semigroup,Monoid)
 ----------------------------
 -- Runtime Functions
 ----------------------------
 
+setBinding :: (Typeable a,Typeable m) => Symbol -> a -> m a  -> Env -> Env
+setBinding name value formula  env = insert env name . Binding (toDyn formula) . toDyn $ value
 
-getBinding :: forall a m meta.
-  (Typeable a, Typeable m, Typeable meta, Monad m ) => K -> R m (Maybe (T a, E meta a))
-getBinding = fmap join . fmap2 fromDynamic  . asks . flip lookup
+readFromEnv :: forall a m. (Typeable a, MonadError Error m)
+  => Symbol -> RT Env m a
+readFromEnv k = ask >>= \e -> case lookup e k of
+  Nothing -> throwError $ "Variable: " <> show k <> " not defined"
+  Just (Binding _ v)  -> case fromDynamic @a v of
+    Nothing -> throwError
+      $ "Wrong type for variable: "
+      <> show k
+      <> ". Expected: " <> (show . typeRep $ Proxy @a )
+      <> ", but instead got: " <> "???"
+      <> ". Actual value: " <> show v
+    Just v -> pure v
 
-getType :: forall (meta :: MetaType) m a.
-  (Typeable a, Typeable m, Typeable meta, Monad m ) => K -> R m (Maybe (T a))
-getType =  fmap2 fst . getBinding @a @m @meta
-
-
-getValue :: forall (meta :: MetaType) m a.
-  (Typeable a, Typeable m, Typeable meta, Monad m ) => K -> R m (Maybe (E meta a))
-getValue =  fmap2 snd . getBinding @a @m @meta
-
-setVar :: (Typeable a, Typeable meta) => T a -> K -> E meta (T a) -> Env -> Env
-setVar t n e m = insert m n $ toDyn (t,e) 
-
-
-{- setVar' :: (Typeable m, Typeable a, Typeable meta) => K -> E meta (T a) -> Env -> Env
-setVar' n e m = let x = case typeOf @a of
-   insert m n $ toDyn (t,e)  -}
 
 ------------------------------
 -- Evaluators and interpreters
 ------------------------------
 
-rvalue :: (Typeable m, Typeable a, MonadError Err m)  => R m (E meta a) -> R m (E meta a)
-rvalue me = me >>= \e -> case e of
-  Val x   -> pure . Val $ x
-  Sym s _ -> getValue @MSym s >>= maybe (throwError . variableNotBoundError $ s) (rvalue . pure) 
-  l@Lambda {} -> pure l
-  Apply (Lambda (Sym v (t :: T t0)) body) (mArg :: E (m1 :: MetaType) (T t2)) -> do
-    arg <- rvalue $ pure mArg
-    let x = setVar t v arg
-    undefined
-  _ -> undefined
-  where
-    variableNotBoundError s = concat ["Symbol: ", show s, " not Bound to any value"]
+instance (MonadError String m, Typeable m) => ZillySym (RT Env m) where
+  val = pure
+  sym var (t :: T a) = readFromEnv @a var
+  
+  lambda :: forall a b c m
+    . (MonadError String m, Typeable a, Typeable b, Typeable c, Evaluable c a, Typeable m) 
+    => Symbol -> T a -> RT Env m b -> RT Env m c -> RT Env m b
+  lambda varName t body mvalue = do 
+    let mvalueReduced = reduce @c @a <$> mvalue
+    value <- mvalueReduced
+    local (setBinding varName value mvalueReduced) body
 
--- | typechecks and evals. Not a good idea in general, but better approaches require GADTs
--- or other constructs
-{- rvalue :: MonadError Err m  => R m E -> R m E
-rvalue me = me >>= \e -> case e of
-  Val z -> pure . Val $ z
-  Sym s -> getValue s >>= maybe (throwError . variableNotBoundError $ s) (rvalue . (me $>))
-  l@(Lambda {}) -> me $> l 
-  Apply l e -> do
-    reducedE <- rvalue $ me $> e
-    case l of
-      Sym mf -> do
-        f <- rvalue mf
-        rvalue (me $> Apply f reducedE) `catchError` \e -> e <> ". On binding: " <> show f
-      Lambda t (Sym s) body -> local (setVar t s reducedE) $ me $> body
-      l@(Lambda {}) -> throwError  
-        $ "Lambdas can only bind variables. But instead got: " 
-        <> show (prettyExp l)
-      _ -> throwError
-        $ "Function application only possible over lambda expressions and functions, but instead got:"
-        <> show (prettyExp l)
-  If a b c -> (\x y z -> if x then y else z) 
-    <$> rvalue (me $> a) 
-    <*> rvalue (me $> b) 
-    <*> rvalue (me $> c) 
-  Defer x  -> me $> x
-  Less a b -> liftA2 (,) (rvalue $ me $> a) (rvalue $ me $> b) >>= \x -> case x of
-    (Val a, Val b) -> me $> if (a < b) then 1 else 0
-    
-  _ -> undefined
+  ifX b x y = b >>= \b -> if b > 0 then x else y
+  defer = pure . fmap Defered
+  less a b = (\x y -> if x < y then 1 else -1) <$> a <*> b
+  formula = id
+
+
+interpretZSym :: Show a => RT Env (Either Error) a -> IO ()
+interpretZSym =  either putStrLn print
+  . flip runReaderT M.empty 
+
+
+test :: IO ()
+test = interpretZSym f6
   where
-    variableNotBoundError s = concat ["Symbol: ", show s, " not Bound to any value"] -}
+    five = val 5
+    f    = lambda "X" Z $ sym "X" Z `less` five
+    f6   = f $ val 6
+
+
+------------------------------
+-- pretty printers           |
+------------------------------
+
+
+mkParens :: Bool -> String -> String
+mkParens b s = if b then "(" <> s <> ")" else s
+
+prettyType :: T a -> String
+prettyType = prettyType' ((-1) :: Float)
+  where 
+    prettyType' :: Float -> T a -> String
+    prettyType' _ Z = "Z"
+    prettyType' pPrec (Lazy y) = mkParens (pPrec > 3) $ "lazy " <> prettyType' 3 y 
+    prettyType' pPrec (Fun left@(Fun _ _) right) 
+      = mkParens (pPrec > 2) $ prettyType' 2.1 left <> " -> " <> prettyType' 2 right
+    prettyType' pPrec (Fun left right) 
+      = mkParens (pPrec > 2) $ prettyType' 2 left <> " -> " <> prettyType' 2 right
 
