@@ -1,5 +1,6 @@
 module ZTest2 where
 
+import Debug.Trace
 
 -- Definitions
 import Zilly (Z,Symbol,T(..),E(..),Statement(..),Program, mkParens, rvalue, exec, State, empty)
@@ -50,7 +51,7 @@ pSym = Sym <$> pVarName
 -- | Parses a (possibly chain of) lambda
 pLambda :: Monad m => Parser m E -> Parser m E
 pLambda =  prefix (Lambda <$> pType' <*>  pSym <* lexeme' "->")
-    
+
 -- | Parses a (possibly chain of) function applications
 pApply :: Monad m => Parser m E -> Parser m E -> Parser m E
 pApply p q = postfix (flip Apply <$> parens q) p
@@ -74,31 +75,35 @@ pMinus :: Monad m => Parser m E -> Parser m E
 pMinus p = lexeme' "minus" >> Minus <$> parens p <*> parens p
 
 -- | Parses a 'formula' function application
-pFormula :: Monad m => Parser m E -> Parser m E 
+pFormula :: Monad m => Parser m E -> Parser m E
 pFormula p = lexeme' "formula" >> Formula <$> parens p
 
 -- | Parses an expression
 pExpression :: Monad m => Parser m E
-pExpression =  p3
+pExpression =  p2
   where
-    base = parens pExpression
+    base = pDefer pExpression
+      <|> parens pExpression
       <|> pVal
       <|> pSym
-    p1 = asum [pDefer pExpression,base]
-    p2 = asum
+    p1 = asum
       [ pLess pExpression
       , pFormula pExpression
       , pMinus pExpression
       , pIf pExpression
-      , pApply p1 pExpression 
+      , pApply base pExpression
       ]
-    p3 = pLambda p2
+    p2 = pLambda p1
 
 
 
 ----------------------
 -- Action Parser     |
 ----------------------
+
+-- | Parses a 'Halt' action
+pHalt :: Monad m => Parser m Statement
+pHalt = lexeme' "halt" *> manyTill (pComment <|> void anyChar) (lookAhead $ char ']') $> Halt -- *> (mzero <?> "Halt action issued")
 
 -- | Parses a 'Define' action
 pDefine :: Monad m => Parser m Statement
@@ -117,7 +122,7 @@ pShow = lexeme' ".show" *> parens (Show <$> (pString <* char' ',') <*> pExpressi
 
 -- | Parses any 'Action'.
 pAction :: Monad m => Parser m Statement
-pAction = pShow <|> pDefine <|> pAssign
+pAction = pHalt <|> pShow <|> pDefine <|> pAssign
 
 
 
@@ -188,7 +193,7 @@ fully p = spaces *> p <* eof
 
 -- | Statement shorthand for running a parser
 parse' :: Parser Identity a -> String -> Either ParseError a
-parse' p = runParser p () ""
+parse' p  = parse p ""
 
 
 
@@ -196,32 +201,34 @@ parse' p = runParser p () ""
 -- Main Parsers And functions |
 ------------------------------
 
+pComment :: Monad m => Parser m ()
+pComment = string' "--" >> manyTill anyChar endOfLine >> spaces $> ()
+
 -- | Parses a single program. 
 pProgram :: Monad m => Parser m Program
 pProgram = between open close pProgram'
   where
     pProgram' = pComment *> pProgram'
       <|> sepEndBy pAction (char' ';' >> pComment <|> optionalEOL )
-    pComment = string' "--" >> manyTill anyChar endOfLine >> spaces $> ()
     optionalEOL = optional endOfLine >> spaces
     open  = char '[' >> pComment <|> optionalEOL
     close = char ']' >> optionalEOL
 
 -- | Parses a file as a list of programs.
 pFile :: String -> [Either ParseError Program]
-pFile = parseNextProgram 
+pFile = parseNextProgram
   where
     parseNextProgram leftOver = if leftOver == "" then [] else case parseWithLeftOver pProgram leftOver of
       Right (prog,newLeftOver) -> Right prog : parseNextProgram newLeftOver
-      (Left e)                 -> [Left e] 
-    parseWithLeftOver p = parse' (liftA2 (,) p getInput)
+      (Left e)                        -> [Left e]
+    parseWithLeftOver p = parse' (liftA2 (,) p  getInput)
 
- 
+
 -- | Main function, pass filepath to file.
 parseZillyFile :: String -> IO ()
 parseZillyFile fp = do
   contents <- readFile fp
-  forM_ ([1 :: Int ..] `zip` pFile contents) $ \(i,r) -> do
+  forM_ ([0 :: Int ..] `zip` pFile contents) $ \(i,r) -> do
     putStrLn "----------------------"
     putStrLn $ "Program: " <> show i
     putStrLn "----------------------"
@@ -242,14 +249,14 @@ execZillyFileIO = traverse (execProgramIO empty)
 parseAndExecZilly :: String -> IO ()
 parseAndExecZilly fp = do
   contents <- readFile fp
-  forM_ ([1 :: Int ..] `zip` pFile contents) $ \(i,r) -> do
+  forM_ ([0 :: Int ..] `zip` pFile contents) $ \(i,r) -> do
     putStrLn "----------------------"
     putStrLn $ "Program: " <> show i
     putStrLn "----------------------"
     case r of
       Left e  -> print e
       Right p -> void $ execProgramIO empty p
-    
+
 
 files :: [String]
 files = ["test_program.txt","test_programs_sequenced.txt"]
@@ -443,7 +450,7 @@ testMinus = runTestTT . TestList $
 
 
 testDefer :: IO Counts
-testDefer = runTestTT . TestList $ 
+testDefer = runTestTT . TestList $
   [ "Parsing '44' should be Defer (Val 44)" ~: Right (Defer (Val 44)) ~=? parse' (fully pExpression) "'44'"
   , "Parsing ''44'' should be Defer (Defer (Val 44))" ~: Right (Defer (Defer (Val 44))) ~=? parse' (fully pExpression) "''44''"
   , "Parsing \"  ' Á12A3aÁXσ '   \" should be Defer (Sym Á12A3aÁXσ)"
@@ -481,7 +488,7 @@ testDefer = runTestTT . TestList $
   ]
 
 testDefine :: IO Counts
-testDefine = runTestTT . TestList $ 
+testDefine = runTestTT . TestList $
   [ "Parsing: <Z -> Z -> Z> f := <Z> x -> <Z> y -> minus(x)(y) should be: \n"
     <> "Define (Fun Z (Fun Z Z)) (Sym f) (Lambda Z (Sym x) (Lambda Z (Sym y) (Minus (Sym x) (Sym y))))"
     ~: Right (Define (Fun Z (Fun Z Z)) (Sym "f") (Lambda Z (Sym "x") (Lambda Z (Sym "y") (Minus (Sym "x") (Sym "y")))))
@@ -491,7 +498,7 @@ testDefine = runTestTT . TestList $
   ]
 
 testAssign :: IO Counts
-testAssign = runTestTT . TestList $ 
+testAssign = runTestTT . TestList $
   [ "Parsing:  f := <Z> x -> <Z> y -> minus(x)(y) should be: \n"
     <> "Assign (Sym f) (Lambda Z (Sym x) (Lambda Z (Sym y) (Minus (Sym x) (Sym y))))"
     ~: Right (Assign (Sym "f") (Lambda Z (Sym "x") (Lambda Z (Sym "y") (Minus (Sym "x") (Sym "y")))))
@@ -501,10 +508,10 @@ testAssign = runTestTT . TestList $
   ]
 
 testMagic :: IO Counts
-testMagic = runTestTT . TestList $ 
+testMagic = runTestTT . TestList $
   [ "Parsing: show(\"\",f(g(minus(5)(y))(f))) should be: Magic . Show $ Apply (Sym \"f\") (Apply (Apply (Sym \"g\") (Minus (Val 5) (Sym \"y\"))) (Sym \"f\"))"
-    ~: Right (Show "" $ Apply (Sym "f") (Apply (Apply (Sym "g") (Minus (Val 5) (Sym "y"))) (Sym "f"))) 
-    ~=? parse' (fully pAction) "show(\"\",f(g(minus(5)(y))(f)))"
+    ~: Right (Show "" $ Apply (Sym "f") (Apply (Apply (Sym "g") (Minus (Val 5) (Sym "y"))) (Sym "f")))
+    ~=? parse' (fully pAction) ".show(\"\",f(g(minus(5)(y))(f)))"
   ]
 
 -- | Run this to test everything.

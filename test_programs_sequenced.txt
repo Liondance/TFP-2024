@@ -18,10 +18,12 @@
   <(Z -> Z) -> Z> apply := <Z->Z> f -> <Z> x -> f(x);
   <Z -> Z>        chs   := <Z> x -> minus(0)(x);
   <Z -> Z -> Z>   plus  := <Z> x -> <Z> y -> minus(x)(chs(y));
+  -- inline comment
   <Z>             zero  := 0;
   <Z>             one   := plus(1)(zero);
   <Z>             oneP  := plus(zero)(1); 
   <Z>             onePP := apply(apply(plus)(1))(0);
+  <Z -> lazy Z>   oneL  := <Z> x -> formula(x);
   .show("apply ==> ", apply);
   .show("chs ==> ", chs);
   .show("plus ==> ", plus);
@@ -36,4 +38,15 @@
   .show("formula one ==>",formula(one));
   .show("formula oneP ==>",formula(oneP));
   .show("formula onePP ==>",formula(onePP));
+  .show("formula oneL ==>",formula(oneL));
+]
+
+
+[ -- Interesting cases
+  Z a := 5;
+  Z b := 1;
+  <lazy Z -> lazy Z> id  := <lazy Z> x -> formula(x)
+
+  f   := Z a -> Z b -> f -> h
+
 ]
