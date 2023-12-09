@@ -158,6 +158,10 @@ substitute gamma (Sym r) arg (Minus lhs rhs) =
     let rhs' = substitute gamma (Sym r) arg rhs in
         Minus lhs' rhs'
 
+substitute gamma (Sym r) arg (Formula (Sym x)) =
+    -- if (r == x) then Formula (Sym r) else Formula (Sym x)
+    Formula (Sym x)
+
 -- apply
 apply :: State -> E -> E -> Maybe E
 apply (status, stack, global) (Lambda lty (Sym symbol) exp) arg = do
