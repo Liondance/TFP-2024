@@ -22,10 +22,10 @@ here for convenience. The TFP 2024 paper is meant to be a step towards the forma
  
 # Installation Instructions
 
-The project here was coded using GHC version `9.4.7`. For better assurance of identical results, you may 
-want to install the same version using [GHCup](https://www.haskell.org/ghcup/install/) or a similar utility.
+The project here was coded using GHC version `9.4.7`. For better reproducibility assurance, you may want 
+to install the same version, using [GHCup](https://www.haskell.org/ghcup/install/) or a similar utility.
 
-To run the advanced test driver `ZTest2.hs`, the Haskell libraries `parsec` and `HUnit` must be installed:
+To run the advanced test driver `ZTest2.hs`, the Haskell libraries `parsec` and `HUnit` must also be installed:
 
 ```
 $ cabal install --lib parsec
