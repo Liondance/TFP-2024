@@ -1,0 +1,12 @@
+[ -- Prog1 from ZTest1 
+ <Z> x := 67;
+ <Z> y := 25;
+ <lazy Z> z := 'minus(x)(y)';
+ .show("x ==> ",x);
+ .show("formula x ==>",formula(x));
+ .show("y ==> ",y);
+ .show("formula y ==>",formula(y));
+ .show("z ==> ",z);
+ .show("formula z ==>",formula(z));
+ 
+]

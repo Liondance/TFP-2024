@@ -246,20 +246,17 @@ execProgramIO = foldM execStatementIO
 execZillyFileIO :: Programs -> IO [State]
 execZillyFileIO = traverse (execProgramIO empty)
 
-parseAndExecZilly :: String -> IO ()
-parseAndExecZilly fp = do
+run :: String -> IO [Maybe State]
+run fp = do
   contents <- readFile fp
-  forM_ ([0 :: Int ..] `zip` pFile contents) $ \(i,r) -> do
+  forM ([0 :: Int ..] `zip` pFile contents) $ \(i,r) -> do
     putStrLn "----------------------"
     putStrLn $ "Program: " <> show i
     putStrLn "----------------------"
     case r of
-      Left e  -> print e
-      Right p -> void $ execProgramIO empty p
+      Left e  -> print e >> pure Nothing
+      Right p -> Just <$> execProgramIO empty p
 
-
-files :: [String]
-files = ["test_program.txt","test_programs_sequenced.txt"]
 
 
 ----------------------

@@ -1,0 +1,5 @@
+[ -- Prog4 from Ztest1 
+  <Z> x := (<Z> n -> minus(n)(25))(67);
+  .show("x ==> ",x);
+  .show("formula x ==> ",formula(x));
+]

@@ -67,7 +67,6 @@
   .show("formula z ==> ",formula(z));
 ]
 
-
 [ -- Prog6 from Ztest1
   <Z -> Z> dec := <Z> n -> minus(n)(1);
   <Z>      x   := 68;
@@ -81,7 +80,6 @@
   .show("z ==> ",z);
   .show("formula z ==> ",formula(z));
 ]
-
 
 [ -- Prog7 from Ztest1 
   <Z -> Z -> Z> sub := <Z> s -> <Z> n -> minus(n)(s);
@@ -110,32 +108,3 @@
   .show("escape ==> ", escape);
   .show("square ==> ", square);
 ]
-
-[ -- Prog 9 from Ztest1
-  <Z -> Z>      chs  := <Z> x -> minus(0)(x);
-  <Z -> Z -> Z> plus := <Z> x -> <Z> y -> minus(x)(chs(y));
-  <Z>           x    := 21;
-  <Z>           y    := 21;
-  <lazy Z>      z    := '(plus(x))(y)';
-  <Z>           a    := z;
-  .show("chs ==> ",chs);
-  .show("formula chs ==> ",formula(chs));
-  .show("plus ==> ",plus);
-  .show("formula plus ==> ",formula(plus));
-  .show("x ==> ",x);
-  .show("formula x ==> ",formula(x));
-  .show("y ==> ",y);
-  .show("formula y ==> ",formula(y));
-  .show("z ==> ",z);
-  .show("formula z ==> ",formula(z));
-  .show("a ==> ",a);
-  .show("formula a ==> ",formula(a));
-                y := (plus(y))(x);
-  <Z>           b := z;
-  .show("y ==> ",y);
-  .show("formula y ==> ",formula(y));      
-  .show("b ==> ",b);
-  .show("formula b ==> ",formula(b));     
-]
-
-

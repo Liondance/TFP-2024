@@ -1,0 +1,20 @@
+[ -- Prog7 from Ztest1 
+  <Z -> Z -> Z> sub := <Z> s -> <Z> n -> minus(n)(s);
+  <Z -> Z>      dec := sub(1);
+  <Z>           x67 := dec(68);
+  <Z>           x42 := sub(25)(x67);
+  .show("sub ==> ",sub);
+  .show("formula sub ==> ",formula(sub));
+  .show("dec ==> ",dec);
+  .show("formula dec ==> ",formula(dec));
+  .show("x67 ==> ",x67);
+  .show("formula x67 ==> ",formula(x67));
+  .show("x42 ==> ",x42);
+  .show("formula x42 ==> ",formula(x42));
+  halt;
+  <Z>            x00 := 0;
+  .show("x00 ==> ",x00);
+  .show("formula x00 ==> ",formula(x00));
+  .show("sub again after halt ==> ",sub);
+  halt;
+]

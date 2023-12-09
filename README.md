@@ -39,16 +39,16 @@ ZTest1> rvalue state (Sym "sub")
 ZTest1> rvalue state (Apply (Sym "sub") (Val 25))
 ZTest1> rvalue state (Apply (Apply (Sym "sub") (Val 25)) (Val 67))
 ```
-# Main artifact: ZTest2.hs
+# Complementary artifact: ZTest2.hs
 
-The complementary artifact uses plain text files in order to run. Please, see the [test_programs_sequenced.txt](./test_programs_sequenced.txt) file in order to get a handle on the grammar that Zilly employs.
+The complementary artifact uses plain text files in order to run. Please, see the [Test/t7.zilly](./Test/t7.zilly) file in order to get a handle on the grammar that Zilly employs.
 
 Once the file is created, please follow the following example session:
 
 ```haskell
 ghci ZTest2.hs
-ZTest2> parseAndExecZilly "test_program.txt"
-ZTest2> parseAndExecZilly "test_programs_sequenced.txt"
+ZTest2> state6 <- run "Test/t6.zilly"
+ZTest2> state7 <- run "Test/t7.zilly"
 
 ```
 
