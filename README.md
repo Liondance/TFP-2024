@@ -35,7 +35,7 @@ $ cabal install --lib HUnit
 # Basic test driver: ZTest1.hs
 
 Here is a sample session showing how to run test programs 6 and 7 residing in the basic test driver.
-The same technique applies, mutatis mutandis, to the other programs in `ZTest1.hs`.
+The same technique applies, mutatis mutandis, for running the other programs in `ZTest1.hs`.
 
 ``` haskell
 ghci ZTest1.hs
