@@ -52,14 +52,27 @@ prog1 =
     [
         Define    Z      (Sym "x") (Val 67),
         Define    Z      (Sym "y") (Val 25),
-        Define (Lazy Z)  (Sym "z") (Defer (Minus (Sym "x") (Sym "y")))
+        Define (Lazy Z)  (Sym "z") (Defer (Minus (Sym "x") (Sym "y"))),
+        Define (Lazy Z)  (Sym "l") (Defer (If (Less (Sym "x") (Sym "y"), (Sym "x"), (Sym "y"))))
     ]
 
 prog2 =
     [
-        Define    Z      (Sym "x") (Val 42),
-        Define    Z      (Sym "y") (Val 67),
-        Define (Lazy Z)  (Sym "z") (Defer (If (Less (Sym "x") (Sym "y"), (Sym "x"), (Sym "y"))))
+        Define (Fun (Lazy Z) (Lazy Z)) (Sym "id") (
+            Lambda (Lazy Z) (Sym "x") (Formula (Sym "x"))
+        ),
+
+        Define (Fun Z Z) (Sym "chs") (
+            Lambda Z (Sym "x") (Minus (Val 0) (Sym "x"))
+        ),
+
+        Define (Fun Z (Fun Z (Lazy Z))) (Sym "plus") (
+            Lambda Z (Sym "x") (
+                Lambda Z (Sym "y") (
+                    Defer (Minus (Sym "x") (Apply (Sym "chs") (Sym "y")))
+                )
+            )
+        )
     ]
 
 prog3 =
@@ -113,14 +126,23 @@ prog7 =
         Halt
     ]
 
+
 prog8 =
     [
-        Define (Fun Z Z) (Sym "square") (Lambda Z (Sym "a") (Minus (Sym "n") (Val 1))),
-        Define (Fun Z (Fun Z Z)) (Sym "escape") (
-            Lambda Z (Sym "a") ((Lambda Z (Sym "b") (
-                Minus (Sym "a") (Sym "b")
-            )))
-        )
+        Define (Fun Z (Fun Z Z)) (Sym "plus") (
+            Lambda Z (Sym "x") (
+                Lambda Z (Sym "y") (
+                    Minus (Sym "x") (Minus (Val 0) (Sym "y"))
+                )
+            )
+        ),
+
+        Define       Z  (Sym "x") (Val 19),
+        Define       Z  (Sym "y") (Val 23),
+        Define (Lazy Z) (Sym "z") (Defer ((Apply (Apply (Sym "plus") (Sym "x")) (Sym "y")))),
+        Define       Z  (Sym "a") (Sym "z"),
+        Assign          (Sym "y") (Apply (Apply (Sym "plus") (Sym "y")) (Val 25)),
+        Define       Z  (Sym "b") (Sym "z")
     ]
 
 prog9 =
@@ -137,11 +159,80 @@ prog9 =
             )
         ),
 
-        Define       Z  (Sym "x") (Val 21),
-        Define       Z  (Sym "y") (Val 21),
+        Define       Z  (Sym "x") (Val 19),
+        Define       Z  (Sym "y") (Val 23),
         Define (Lazy Z) (Sym "z") (Defer ((Apply (Apply (Sym "plus") (Sym "x")) (Sym "y")))),
         Define       Z  (Sym "a") (Sym "z"),
         Assign          (Sym "y") (Apply (Apply (Sym "plus") (Sym "y")) (Val 25)),
         Define       Z  (Sym "b") (Sym "z")
+    ]
 
+progA =
+    [
+        Define (Fun Z Z) (Sym "chs") (
+            Lambda Z (Sym "x") (Minus (Val 0) (Sym "x"))
+        ),
+
+        Define (Fun Z (Fun Z (Lazy Z))) (Sym "plus") (
+            Lambda Z (Sym "x") (
+                Lambda Z (Sym "y") (
+                    Defer (Minus (Sym "x") (Apply (Sym "chs") (Sym "y")))
+                )
+            )
+        ),
+
+        Define       Z  (Sym "x") (Val 19),
+        Define       Z  (Sym "y") (Val 23),
+        Define (Lazy Z) (Sym "z") ((Apply (Apply (Sym "plus") (Sym "x")) (Sym "y"))),
+        Define       Z  (Sym "a") (Sym "z"),
+        Assign          (Sym "y") (Apply (Apply (Sym "plus") (Sym "y")) (Val 25)),
+        Define       Z  (Sym "b") (Sym "z")
+    ]
+
+progB =
+    [
+    ]
+
+progC =
+    [
+        Define (Fun Z Z) (Sym "chs") (
+            Lambda Z (Sym "x") (Minus (Val 0) (Sym "x"))
+        ),
+
+        Define (Fun Z (Fun Z (Lazy Z))) (Sym "plus") (
+            Lambda Z (Sym "x") (
+                Lambda Z (Sym "y") (
+                    Apply (
+                        Lambda (Lazy Z) (Sym "x") (Formula (Sym "x"))
+                    ) (
+                        Defer (Minus (Sym "x") (Apply (Sym "chs") (Sym "y")))
+                    )
+                )
+            )
+        ),
+
+        Define       Z  (Sym "x") (Val 19),
+        Define       Z  (Sym "y") (Val 23),
+        Define (Lazy Z) (Sym "z") ((Apply (Apply (Sym "plus") (Sym "x")) (Sym "y"))),
+        Define       Z  (Sym "a") (Sym "z"),
+        Assign          (Sym "y") (Apply (Apply (Sym "plus") (Sym "y")) (Val 25)),
+        Define       Z  (Sym "b") (Sym "z")
+    ]
+
+progD =
+    [
+    ]
+
+progE =
+    [
+    ]
+
+progF =
+    [
+        Define (Fun Z Z) (Sym "square") (Lambda Z (Sym "a") (Minus (Sym "n") (Val 1))),
+        Define (Fun Z (Fun Z Z)) (Sym "escape") (
+            Lambda Z (Sym "a") ((Lambda Z (Sym "b") (
+                Minus (Sym "a") (Sym "b")
+            )))
+        )
     ]
