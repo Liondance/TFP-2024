@@ -4,9 +4,10 @@ Repository for the TFP-2024 conference artifact.
 
 This artifact embodies, in Haskell, our formalization of the Zilly language. Zilly is a small 
 subset of Lilly - a language that generalizes the core spreadsheet semantics, as described in 
-the ICICT 2021 paper "Towards Wide-Spectrum Spreadsheet Computing". The ICICT 2021 paper was 
-published  in the IEEE Xplore (https://ieeexplore.ieee.org/document/9476942) and is reproduced 
-here for convenience. The TFP 2024 paper is meant to be a step towards the formalization of Lilly.
+the ICICT 2021 paper titled "Towards Wide-Spectrum Spreadsheet Computing".
+
+The ICICT 2021 paper was published  in the IEEE Xplore (https://ieeexplore.ieee.org/document/9476942)
+and is reproduced here for convenience. The TFP 2024 paper is meant to be a step towards the formalization of Lilly.
 
 # List of Content
 
