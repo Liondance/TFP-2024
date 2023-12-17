@@ -579,3 +579,4 @@ testAll = do
   putStrLn "testMagic"
   putStrLn "-------------------------"
   print =<< testMagic
+
