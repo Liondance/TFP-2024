@@ -1,0 +1,12 @@
+[ -- Prog5 from Ztest1 
+  <Z -> Z> dec := <Z> n -> minus(n)(1);
+  <Z>      x   := 43;
+  <Z>      y   := dec(x);
+  <lazy Z> z   := 'dec(x)';
+  .show("dec ==> ",dec);
+  .show("formula dec ==> ",formula(dec));
+  .show("x ==> ",x);
+  .show("formula x ==> ",formula(x));
+  .show("z ==> ",z);
+  .show("formula z ==> ",formula(z));
+]

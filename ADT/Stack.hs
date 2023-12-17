@@ -1,5 +1,5 @@
 --
--- stack.hs
+-- Stack.hs
 --
 
 module ADT.Stack where

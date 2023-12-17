@@ -1,0 +1,11 @@
+[ -- Prog2 from Ztest1
+  <Z> x := 42;
+  <Z> y := 67;
+  <lazy Z> z := if(lt(x)(y),x,y);
+  .show("x ==> ",x);
+  .show("formula x ==> ",formula(x));
+  .show("y ==> ",y);
+  .show("formula y ==> ",formula(y));
+  .show("z ==> ",z);
+  .show("formula z ==> ",formula(z));
+]

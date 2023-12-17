@@ -1,0 +1,6 @@
+[ -- Prog 8 from Ztest1
+  <Z -> Z> square      := <Z> a -> minus(n)(1);
+  <Z -> Z -> Z> escape := <Z> a -> <Z> b -> minus(a)(chs(b));
+  .show("escape ==> ", escape);
+  .show("square ==> ", square);
+]

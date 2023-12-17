@@ -1,0 +1,21 @@
+[ -- Prog3 from Ztest1
+  <Z> answer42 := <Z> n -> 42;
+  <Z> identity := <Z> x -> x;
+  <Z> aa       := answer42(answer42(67));
+  <Z> ai       := answer42(identity(67));
+  <Z> ia       := identity(answer42(67));
+  <Z> ii       := identity(identity(67));
+  .show("answer42 ==> ",answer42);
+  .show("formula answer42 ==> ", formula(answer42));
+  .show("identity ==> ",identity);
+  .show("formula identity ==> ", formula(identity));
+  .show("aa ==> ",aa);
+  .show("formula aa ==> ", formula(aa));
+  .show("ai ==> ",ai);
+  .show("formula ai ==> ", formula(ai));
+  .show("ia ==> ",ia);
+  .show("formula ia ==> ", formula(ia));
+  .show("ii ==> ",ii);
+  .show("formula ii ==> ", formula(ii));
+
+]

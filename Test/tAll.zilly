@@ -1,0 +1,110 @@
+[ -- Prog0 from ZTest1 
+]
+
+[ -- Prog1 from ZTest1 
+ <Z> x := 67;
+ <Z> y := 25;
+ <lazy Z> z := 'minus(x)(y)';
+ .show("x ==> ",x);
+ .show("formula x ==>",formula(x));
+ .show("y ==> ",y);
+ .show("formula y ==>",formula(y));
+ .show("z ==> ",z);
+ .show("formula z ==>",formula(z));
+
+]
+
+[ -- Prog2 from Ztest1
+  <Z> x := 42;
+  <Z> y := 67;
+  <lazy Z> z := if(lt(x)(y),x,y);
+  .show("x ==> ",x);
+  .show("formula x ==> ",formula(x));
+  .show("y ==> ",y);
+  .show("formula y ==> ",formula(y));
+  .show("z ==> ",z);
+  .show("formula z ==> ",formula(z));
+]
+
+[ -- Prog3 from Ztest1
+  <Z> answer42 := <Z> n -> 42;
+  <Z> identity := <Z> x -> x;
+  <Z> aa       := answer42(answer42(67));
+  <Z> ai       := answer42(identity(67));
+  <Z> ia       := identity(answer42(67));
+  <Z> ii       := identity(identity(67));
+  .show("answer42 ==> ",answer42);
+  .show("formula answer42 ==> ", formula(answer42));
+  .show("identity ==> ",identity);
+  .show("formula identity ==> ", formula(identity));
+  .show("aa ==> ",aa);
+  .show("formula aa ==> ", formula(aa));
+  .show("ai ==> ",ai);
+  .show("formula ai ==> ", formula(ai));
+  .show("ia ==> ",ia);
+  .show("formula ia ==> ", formula(ia));
+  .show("ii ==> ",ii);
+  .show("formula ii ==> ", formula(ii));
+
+]
+
+[ -- Prog4 from Ztest1 
+  <Z> x := (<Z> n -> minus(n)(25))(67);
+  .show("x ==> ",x);
+  .show("formula x ==> ",formula(x));
+]
+
+[ -- Prog5 from Ztest1 
+  <Z -> Z> dec := <Z> n -> minus(n)(1);
+  <Z>      x   := 43;
+  <Z>      y   := dec(x);
+  <lazy Z> z   := 'dec(x)';
+  .show("dec ==> ",dec);
+  .show("formula dec ==> ",formula(dec));
+  .show("x ==> ",x);
+  .show("formula x ==> ",formula(x));
+  .show("z ==> ",z);
+  .show("formula z ==> ",formula(z));
+]
+
+[ -- Prog6 from Ztest1
+  <Z -> Z> dec := <Z> n -> minus(n)(1);
+  <Z>      x   := 68;
+  <Z>      y   := dec(x);
+  <lazy Z> z   := 'dec(x)';
+  x := minus(43)(minus(x)(z));
+  .show("dec ==> ",dec);
+  .show("formula dec ==> ",formula(dec));
+  .show("x ==> ",x);
+  .show("formula x ==> ",formula(x));
+  .show("z ==> ",z);
+  .show("formula z ==> ",formula(z));
+]
+
+[ -- Prog7 from Ztest1 
+  <Z -> Z -> Z> sub := <Z> s -> <Z> n -> minus(n)(s);
+  <Z -> Z>      dec := sub(1);
+  <Z>           x67 := dec(68);
+  <Z>           x42 := sub(25)(x67);
+  .show("sub ==> ",sub);
+  .show("formula sub ==> ",formula(sub));
+  .show("dec ==> ",dec);
+  .show("formula dec ==> ",formula(dec));
+  .show("x67 ==> ",x67);
+  .show("formula x67 ==> ",formula(x67));
+  .show("x42 ==> ",x42);
+  .show("formula x42 ==> ",formula(x42));
+  halt;
+  <Z>            x00 := 0;
+  .show("x00 ==> ",x00);
+  .show("formula x00 ==> ",formula(x00));
+  .show("sub again after halt ==> ",sub);
+  halt;
+]
+
+[ -- Prog 8 from Ztest1
+  <Z -> Z> square      := <Z> a -> minus(n)(1);
+  <Z -> Z -> Z> escape := <Z> a -> <Z> b -> minus(a)(chs(b));
+  .show("escape ==> ", escape);
+  .show("square ==> ", square);
+]

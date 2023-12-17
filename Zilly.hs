@@ -8,22 +8,10 @@ import Prelude hiding (lookup)
 
 -- Stack
 import ADT.Stack as Stack hiding (empty)
-
 -- Map
-import Data.Map (Map)
-import qualified Data.Map as Map
+import ADT.Map (Map, insert, lookup, update)
+import qualified ADT.Map as Map
 
-lookup :: Ord k => Map k v -> k -> Maybe v
-lookup map k = Map.lookup k map
-
-insert :: Ord k => Map k v -> k -> v -> Map k v
-insert map k v = Map.insert k v map
-
-delete :: Ord k => Map k v -> k -> Map k v
-delete map k = Map.delete k map
-
-update :: Ord k => Map k v -> k -> v -> Map k v
-update map k v = let m = delete map k in insert m k v
 
 -- Zilly
 
@@ -38,7 +26,7 @@ data T =
       Z                 -- integer type: Z
     | Fun T T           -- function type: <type> -> <type>
     | Lazy T            -- lazy type: lazy <type>
-    deriving Show
+    deriving (Eq,Show)
 
 -- Expressions
 data E =
@@ -51,15 +39,15 @@ data E =
     | Less E E          -- less than (lt predefined function): lt(x)(y) =<>=> x < y
     | Minus E E         -- subtraction (minus predefined function): minus(x)(y) =<>=> x - y
     | Formula E
-    deriving Show
+    deriving (Eq,Show)
 
 -- Statements
 data Statement = 
       Define T E E      -- <type> <symbol> := <expression>;
     | Assign E E        -- <symbol> := <expression>;
-    | Show (String, E)  -- magic form: show(<string>, <exp>) prints <string> ==> rvalue(<exp>)
+    | Show String E     -- magic form: show(<string>, <exp>) prints <string> ==> rvalue(<exp>)
     | Halt
-    deriving Show
+    deriving (Eq,Show)
 
 -- Program
 type Program = [Statement]
@@ -259,3 +247,39 @@ run' state (action:actions) =
         run' store' actions
 
 run prog = run' empty prog
+
+
+------------------------------
+-- pretty printers           |
+------------------------------
+
+
+mkParens :: Bool -> String -> String
+mkParens b s = if b then "(" <> s <> ")" else s
+
+prettyType :: T -> String
+prettyType = prettyType' ((-1) :: Float)
+  where 
+    prettyType' _ Z = "Z"
+    prettyType' pPrec (Lazy y) = mkParens (pPrec > 3) $ "lazy " <> prettyType' 3 y 
+    prettyType' pPrec (Fun left@(Fun _ _) right) 
+      = mkParens (pPrec > 2) $ prettyType' 2.1 left <> " -> " <> prettyType' 2 right
+    prettyType' pPrec (Fun left right) 
+      = mkParens (pPrec > 2) $ prettyType' 2 left <> " -> " <> prettyType' 2 right
+
+prettyExp :: E -> String
+prettyExp = prettyExp'
+  where
+    -- no parent precedence argument since it's just easier to paren by hand
+    -- parent decides if child is paren
+    prettyExp' (Val n)        = show n
+    prettyExp' (Sym v)        = v
+    prettyExp' (Minus x y)    = "minus" <> mkParens True (prettyExp' x) <> mkParens True (prettyExp' y)
+    prettyExp' (Less x y)     = "lt" <> mkParens True (prettyExp' x) <> mkParens True (prettyExp' y)
+    prettyExp' (If (b,x,y))   = "if" <> mkParens True (prettyExp' b <> ", " <> prettyExp' x <> ", " <> prettyExp' y)
+    prettyExp' (Defer e)      = "'" <> prettyExp' e <> "'"
+    prettyExp' (Apply(Sym f) e)        = f <> mkParens True (prettyExp' e)
+    prettyExp' (Apply(Defer f) e)      = prettyExp' f <> mkParens True (prettyExp' e)
+    prettyExp' (Apply f@(Apply _ _) e) = prettyExp' f <> mkParens True (prettyExp' e)
+    prettyExp' (Apply f e)    = mkParens True (prettyExp' f) <> mkParens True (prettyExp' e)
+    prettyExp' (Lambda t v e) =  "<" <> prettyType t <> "> " <> prettyExp' v <> " -> " <> prettyExp' e 
