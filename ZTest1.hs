@@ -57,8 +57,6 @@ prog2 =
         )
     ]
 
-{-
-
 prog3 =
     [
         Define    Z      (Sym "answer42") (Lambda Z (Sym "n") (Val 42)),
@@ -220,4 +218,3 @@ progF =
             )))
         )
     ]
--}
