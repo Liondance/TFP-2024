@@ -27,6 +27,24 @@ sbv state symbol arg var = substitute state (Sym symbol) arg (cv state var)
 
 -- Test programs
 
+{-
+    Sample Program
+
+    [
+        Z -> Z chs := Z x -> minus(0)(x);
+        Z -> (Z -> Z) plus := (Z x -> (Z y -> minus(x)(chs(y))));
+        Z x := 7;
+        Z y := 8;
+        Z q := plus(x)(y);
+        show("q ==> ", q);              -- imprime: q ==> 15
+        lazy Z z := 'plus(x)(y)'
+        show("z ==> ", z);              -- imprime: z ==> 15
+        x := plus(x)(1);
+        show("q ==> ", q);              -- imprime: q ==> 15
+        show("z ==> ", z);              -- imprime: z ==> 16
+    ]
+-}
+
 prog0 :: Program
 prog0 = []
 
@@ -40,13 +58,15 @@ prog1 =
 
 prog2 =
     [
-        Define (Fun (Lazy Z) (Lazy Z)) (Sym "id") (
-            Lambda (Lazy Z) (Sym "x") (Formula (Sym "x"))
+        Define (Fun Z (Fun Z Z)) (Sym "sub") (
+            Lambda Z (Sym "x") (
+                Lambda Z (Sym "y") (
+                    Minus (Sym "y") (Sym "x")
+                )
+            )
         ),
 
-        Define (Fun Z Z) (Sym "chs") (
-            Lambda Z (Sym "x") (Minus (Val 0) (Sym "x"))
-        ),
+        Halt,
 
         Define (Fun Z (Fun Z (Lazy Z))) (Sym "plus") (
             Lambda Z (Sym "x") (
@@ -54,10 +74,24 @@ prog2 =
                     Defer (Minus (Sym "x") (Apply (Sym "chs") (Sym "y")))
                 )
             )
-        )
-    ]
+        ),
 
-{-
+        Define (Fun (Lazy Z) (Lazy Z)) (Sym "rv") (
+            Lambda (Lazy Z) (Sym "x") (Sym "x")
+        ),
+
+        Define (Fun (Lazy Z) (Lazy Z)) (Sym "id") (
+            Lambda (Lazy Z) (Sym "x") (Formula (Sym "x"))
+        ),
+
+        Define (Lazy Z) (Sym "z") (Val 42),
+
+        Define (Lazy Z) (Sym "r1") (Apply (Sym "rv") (Val 42)),
+
+        Define (Lazy Z) (Sym "r2") (Apply (Sym "id") (Val 42)),
+
+        Halt
+    ]
 
 prog3 =
     [
@@ -71,7 +105,19 @@ prog3 =
 
 prog4 =
     [
-        Define    Z      (Sym "x")   (Apply (Lambda Z (Sym "n") (Minus (Sym "n") (Val 25))) (Val 67))
+        Define Z (Sym "x") (Apply (Lambda Z (Sym "n") (Minus (Sym "n") (Val 25))) (Val 67)),
+
+        Define (Fun Z Z) (Sym "chs") (
+            Lambda Z (Sym "x") (Minus (Val 0) (Sym "x"))
+        ),
+
+        Define (Fun Z (Fun Z (Lazy Z))) (Sym "plus") (
+            Lambda Z (Sym "x") (
+                Lambda Z (Sym "y") (
+                    Defer (Minus (Sym "x") (Apply (Sym "chs") (Sym "y")))
+                )
+            )
+        )
     ]
 
 prog5 =
@@ -220,4 +266,3 @@ progF =
             )))
         )
     ]
--}
