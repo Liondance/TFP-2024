@@ -32,18 +32,17 @@ prog0 = []
 
 prog1 =
     [
-        Define    Z      (Sym "x") (Val 67),
-        Define    Z      (Sym "y") (Val 25),
-        Define (Lazy Z)  (Sym "z") (Defer (Minus (Sym "x") (Sym "y"))),
-        Define (Lazy Z)  (Sym "l") (Defer (If (Less (Sym "x") (Sym "y"), (Sym "x"), (Sym "y"))))
+        Define (Fun (Lazy Z) Z) (Sym "rv") (
+            Lambda (Lazy Z) (Sym "x") (Sym "x")
+        ),
+
+        Define (Fun (Lazy Z) (Lazy Z)) (Sym "id") (
+            Lambda (Lazy Z) (Sym "x") (Formula (Sym "x"))
+        )
     ]
 
 prog2 =
     [
-        Define (Fun (Lazy Z) (Lazy Z)) (Sym "id") (
-            Lambda (Lazy Z) (Sym "x") (Formula (Sym "x"))
-        ),
-
         Define (Fun Z Z) (Sym "chs") (
             Lambda Z (Sym "x") (Minus (Val 0) (Sym "x"))
         ),
@@ -54,7 +53,12 @@ prog2 =
                     Defer (Minus (Sym "x") (Apply (Sym "chs") (Sym "y")))
                 )
             )
-        )
+        ),
+
+        Define    Z      (Sym "x") (Val 67),
+        Define    Z      (Sym "y") (Val 25),
+        Define (Lazy Z)  (Sym "z") (Defer (Minus (Sym "x") (Sym "y"))),
+        Define (Lazy Z)  (Sym "l") (Defer (If (Less (Sym "x") (Sym "y"), (Sym "x"), (Sym "y"))))
     ]
 
 prog3 =
