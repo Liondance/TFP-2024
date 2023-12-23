@@ -10,6 +10,16 @@
 
     1. Make the Zilly interpreter work well! ;-)
 
+    2. Test variations of
+
+        f := a ->
+                b ->
+                    a - b
+
+        g := f(67);
+
+        x := g(25);
+
 ### Cody's suggestions
 
     YES: use a state transformer!! (without do notation)
