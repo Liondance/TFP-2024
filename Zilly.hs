@@ -147,8 +147,8 @@ substitute gamma (Sym r) arg (Minus lhs rhs) =
         Minus lhs' rhs'
 
 substitute gamma (Sym r) arg (Formula (Sym x)) =
-    -- if (r == x) then Formula (Sym r) else Formula (Sym x)
-    Formula (Sym x)
+    if (r == x) then (Defer arg)
+    else Formula (Sym x)
 
 -- apply
 apply :: State -> E -> E -> Maybe E
