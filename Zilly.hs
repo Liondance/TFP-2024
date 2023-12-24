@@ -233,6 +233,14 @@ exec (status, stack, global) (Assign (Sym symbol) exp) =
                 Just exp'' -> (status, stack, global')
                     where global' = update global symbol (lty, symbol, exp'')
 
+exec (status, stack, global) (Show prompt exp) =
+    let exp' = rvalue (status, stack, global) exp in
+    case exp' of
+        Nothing -> (status, stack, global')
+            where global' = insert global prompt (Lazy Z, prompt, (Sym "Nothing"))
+        Just exp'' -> (status, stack, global')
+            where global' = insert global prompt (Lazy Z, prompt, exp'')
+
 exec (status, stack, global) (Halt) = ('H', stack, global)
 
 -- initial store
