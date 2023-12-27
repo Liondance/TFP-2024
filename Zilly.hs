@@ -24,6 +24,7 @@ type Symbol = String
 -- Types
 data T =
       Z                 -- integer type: Z
+    | Err               -- static and dynamic errors
     | Fun T T           -- function type: <type> -> <type>
     | Lazy T            -- lazy type: lazy <type>
     deriving (Eq,Show)
@@ -31,6 +32,7 @@ data T =
 -- Expressions
 data E =
       Val Z             -- integer values: 0, 1, .., 10, 11, .. 42 ..
+    | Error String      -- error values
     | Sym Symbol        -- var names, i.e. user defined symbols: a, b, .. x, y, .. zarzuela, ..
     | Lambda T E E      -- <type> <symbol> -> <exp>: (Z -> Z) x -> minus(x)(minus(0)(1))
     | Apply E E         -- function application <exp>(<exp>): ((Z -> Z) x -> minus(x)(minus(0)(1)))(41)
@@ -93,23 +95,27 @@ state'lookup (status, stack, global) symbol =
             Just _ -> binding
 
 -- ltype
-ltype :: State -> E -> Maybe T
+ltype :: State -> E -> T
 ltype gamma (Sym symbol) =
     case state'lookup gamma symbol of
-        Nothing -> Nothing
-        Just (lty, _, _) -> Just lty
+        Nothing -> Err
+        Just (lty, _, _) -> lty
 
 -- cvalue
-cvalue :: State -> E -> Maybe E
+cvalue :: State -> E -> E
 cvalue gamma (Sym symbol) =
     case state'lookup gamma symbol of
-        Nothing -> Nothing
-        Just (_, _, exp) -> Just exp
+        Nothing -> Error "#REF!"
+        Just (_, _, exp) -> exp
+
+cvalue gamma exp = Error "#LVALUE!"
 
 -- substitute
 substitute :: State -> E -> E -> E -> E
 
 substitute gamma _ _ (Val i) = (Val i)
+
+substitute gamma _ _ (Error x) = (Error x)
 
 substitute gamma (Sym r) arg (Sym s)
     | r == s = arg
@@ -150,32 +156,40 @@ substitute gamma (Sym r) arg (Formula (Sym x)) =
     else Formula (Sym x)
 
 -- apply
-apply :: State -> E -> E -> Maybe E
+apply :: State -> E -> E -> E
 apply (status, stack, global) (Lambda lty (Sym symbol) exp) arg = do
     let stack' = push stack (lty, symbol, arg)
     let gamma' = (status, stack', global)
     rvalue gamma' exp
 
 -- rvalue
-rvalue :: State -> E -> Maybe E
+rvalue :: State -> E -> E
 
-rvalue gamma (Val i) = Just (Val i)
+-- Val
+rvalue gamma (Val i) = Val i
 
+-- Error
+rvalue gamma (Error x) = Error x
+
+-- Sym
 rvalue gamma (Sym s) = let cv = cvalue gamma (Sym s) in
     case cv of
-        Nothing -> Nothing
-        Just exp -> rvalue gamma exp
+        Error x -> Error x
+        exp -> rvalue gamma exp
 
-rvalue gamma (Lambda lty x exp) = Just (Lambda lty x exp)
+rvalue gamma (Lambda lty x exp) = (Lambda lty x exp)
 
+-- Apply
+rvalue gamma (Apply (Error x) _) = Error x
+rvalue gamma (Apply _ (Error x)) = Error x
 rvalue gamma (Apply fun arg) = do
-    arg' <- rvalue gamma arg
-    fun' <- rvalue gamma fun
+    let arg' = rvalue gamma arg
+    let fun' = rvalue gamma fun
     case fun' of
         (Lambda lty par exp) -> do
             let exp' = substitute gamma par arg' exp
             rvalue gamma exp'
-        otherwise -> Just (Apply fun' arg')
+        otherwise -> (Apply fun' arg')
         -- otherwise IS relevent for (future) lazy-ness propagation:
         --   'f'(a) =bs=> f(rv(a)) =bs=> rv(f)(rv(rv(a)))
         --   'inc'(6 * 7 - 1) =rv=> inc(41) =rv=> 42
@@ -189,22 +203,30 @@ rvalue gamma (Apply fun arg) = do
 rvalue gamma (If (predicate, x, y)) =
     let p = rvalue gamma predicate in
         case p of
-            Nothing -> Nothing
-            Just (Val z) -> if z /= 0 then rvalue gamma x else rvalue gamma y
+            Error x -> Error x 
+            (Val z) -> if z /= 0 then rvalue gamma x else rvalue gamma y
+            _ -> Error "#TYPE!"
 
-rvalue gamma (Defer exp) = Just exp
+-- Defer
+rvalue gamma (Defer (Error x)) = Error x
+rvalue gamma (Defer exp) = exp
 
+-- Less
 rvalue gamma (Less lhs rhs) = do
-    l <- rvalue gamma lhs
-    r <- rvalue gamma rhs
-    Just (less l r)
+    let l = rvalue gamma lhs
+    let r = rvalue gamma rhs
+    (less l r)
 
+-- Minus
 rvalue gamma (Minus lhs rhs) = do
-    l <- rvalue gamma lhs
-    r <- rvalue gamma rhs
-    Just (minus l r)
+    let l = rvalue gamma lhs
+    let r = rvalue gamma rhs
+    (minus l r)
 
+-- Formula
 rvalue gamma (Formula x) = cvalue gamma x
+
+-- Predefined "native" functions
 
 less :: E -> E -> E
 less (Val x) (Val y) = if x < y then Val 1 else Val 0
@@ -216,9 +238,10 @@ minus (Val x) (Val y) = Val (x - y)
 exec :: State -> Statement -> State
 exec (status, stack, global) (Define lty (Sym symbol) exp) =
     let exp' = rvalue (status, stack, global) exp in
+    -- add check for double definition!!
     case exp' of
-        Nothing -> (status, stack, global)
-        Just exp'' -> (status, stack, global')
+        Error x -> (status, stack, global)
+        exp'' -> (status, stack, global')
             where global' = insert global symbol (lty, symbol, exp'')
 
 exec (status, stack, global) (Assign (Sym symbol) exp) =
@@ -228,17 +251,17 @@ exec (status, stack, global) (Assign (Sym symbol) exp) =
         Just (lty, _, _) ->
             let exp' = rvalue (status, stack, global) exp in
             case exp' of
-                Nothing -> (status, stack, global)
-                Just exp'' -> (status, stack, global')
+                Error x -> (status, stack, global)
+                exp'' -> (status, stack, global')
                     where global' = update global symbol (lty, symbol, exp'')
 
 exec (status, stack, global) (Show prompt exp) =
     let exp' = rvalue (status, stack, global) exp in
     case exp' of
-        Nothing -> (status, stack, global')
-            where global' = insert global prompt (Lazy Z, prompt, (Sym "Nothing"))
-        Just exp'' -> (status, stack, global')
-            where global' = insert global prompt (Lazy Z, prompt, exp'')
+        Error x -> (status, stack, global')
+            where global' = insert global prompt (Lazy Z, x, (Sym "Error"))
+        exp'' -> (status, stack, global')
+            where global' = insert global prompt (Lazy Z, "OK", exp'')
 
 exec (status, stack, global) (Halt) = ('H', stack, global)
 

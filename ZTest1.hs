@@ -8,15 +8,15 @@ cv :: State -> String -> E
 cv state symbol =
     let cvs = cvalue state (Sym symbol) in
         case cvs of
-            Nothing -> (Sym "Nothing")
-
+            Error x -> Error x
+            cve -> cve
 
 rv :: State -> String -> E
 rv state symbol =
     let rvs = rvalue state (Sym symbol) in
         case rvs of
-            Nothing -> (Sym "Nothing")
-            Just ex -> ex
+            Error x -> Error x
+            rve -> rve
 
 sbx :: State -> String -> E -> E -> E
 sbx state symbol arg exp = substitute state (Sym symbol) arg exp
@@ -201,8 +201,6 @@ prog8 =
         Define (Fun Z Z) (Sym "dec") (Apply (Sym "sub") (Val 1)),
         Define    Z      (Sym "x67") (Apply (Sym "dec") (Val 68)),
         Define    Z      (Sym "x42") (Apply (Apply (Sym "sub") (Val 25)) (Sym "x67")),
-
-        Halt,
         Define    Z      (Sym "x00") (Val 0),
 
         Halt
