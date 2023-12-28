@@ -8,6 +8,7 @@ import Prelude hiding (lookup)
 
 -- Stack
 import ADT.Stack as Stack hiding (empty)
+
 -- Map
 import ADT.Map (Map, insert, lookup, update)
 import qualified ADT.Map as Map
@@ -40,7 +41,7 @@ data E =
     | Defer E           -- deferred expression '<exp>': 'uniform(0)(1)'
     | Less E E          -- less than (lt predefined function): lt(x)(y) =<>=> x < y
     | Minus E E         -- subtraction (minus predefined function): minus(x)(y) =<>=> x - y
-    | Formula E         -- cvalue (E must have l-value)
+    | Formula E         -- cvalue (expression must have l-value)
     deriving (Eq,Show)
 
 -- Statements
@@ -227,7 +228,6 @@ rvalue gamma (Minus lhs rhs) = do
 rvalue gamma (Formula x) = cvalue gamma x
 
 -- Predefined "native" functions
-
 less :: E -> E -> E
 less (Val x) (Val y) = if x < y then Val 1 else Val 0
 
@@ -282,7 +282,6 @@ run prog = run' empty prog
 ------------------------------
 -- pretty printers           |
 ------------------------------
-
 
 mkParens :: Bool -> String -> String
 mkParens b s = if b then "(" <> s <> ")" else s
