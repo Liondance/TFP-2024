@@ -31,20 +31,41 @@ type ZME = ZM Env
 -- Utilities
 ---------------------
 
-defineVar :: T -> String -> E ZME -> ZME ()
-defineVar _ varName varBody = asks (lookup varName) >>= \a -> case a of
+defineVar :: T -> String -> E Env -> ZME Env
+defineVar _ varName varBody = 
+  asks (lookup varName) >>= \a -> case a of
   Just untypedVar -> throwM $ VAD varName
   Nothing         -> do
-    value <- liftIO $ newMVar (toDyn varBody)
-    modify (insert varName value)
+    case varBody of
+      ClosureV e a b -> do
+        value <- liftIO newEmptyMVar
+        let c = ClosureV (insert varName value e) a b
+        liftIO . putMVar value . toDyn $ c
+        v <- liftIO $ newMVar (toDyn c)
+        asks (insert varName v)
+      _ -> do 
+        value <- liftIO $ newMVar (toDyn varBody)
+        asks (insert varName value)
 
-assignVar :: T -> String -> E ZME -> ZME ()
-assignVar _ varName varBody = asks (lookup varName) >>= \a -> case a of
-  Just untypedVar -> void . liftIO $ swapMVar untypedVar (toDyn varBody)
+assignVar :: String -> E Env -> ZME ()
+assignVar varName varBody = asks (lookup varName) >>= \a -> case a of
+  Just untypedVar -> case varBody of 
+    ClosureV e a b ->
+      let c = ClosureV (insert varName untypedVar e) a b
+      in void . liftIO $ swapMVar untypedVar (toDyn c)
+    _ -> void . liftIO $ swapMVar untypedVar (toDyn varBody)
   Nothing         -> throwM $ VND varName
 
+withLocalVar :: T -> String -> E Env -> ZME a -> ZME a
+withLocalVar _ varName varBody cont = do
+  v <- liftIO $ newMVar (toDyn varBody)
+  local (insert varName v) $ do
+    liftIO $ putStrLn "----------------------------"
+    asks keys >>= liftIO . print 
+    liftIO $ putStrLn "----------------------------"
+    cont
 
-getVar :: String -> ZME (E ZME)
+getVar :: String -> ZME (E Env)
 getVar varName = asks (lookup varName) >>= \a -> case a of
   Just untypedVar -> do 
     dynValue <- liftIO $ readMVar untypedVar
@@ -53,23 +74,23 @@ getVar varName = asks (lookup varName) >>= \a -> case a of
       Nothing     -> throwM . BT . concat $ ["Variable: ", show varName, ", Has an incompatible type."]
   Nothing         -> throwM $ VND varName
 
-showE :: E ZME -> ZME String
+showE :: E Env -> ZME String
 showE (Val n) = pure . concat $ ["Val ", show n]
 showE (Sym s) = pure . concat $ ["Sym ", show s]
-showE (Lambda t s e) = (\e' -> concat ["Lambda (", show t, ") ", show s, e']) <$> (e >>= showE)
-showE (Apply f x)    = (\a b -> concat ["Apply (", a, ") (", b, ")"]) <$> (f >>= showE) <*> (x >>= showE)
+showE (Lambda t s e) = (\e' -> concat ["Lambda (", show t, ") ", show s, " (",  e', ")"]) <$> showE e
+showE (Apply f x)    = (\a b -> concat ["Apply (", a, ") (", b, ")"]) <$> showE f  <*> showE x
 showE (If a b c)     = (\a b c -> concat ["If (", a, ") (", b, ") (", c,")"]) 
-  <$> (a >>= showE) 
-  <*> (b >>= showE)
-  <*> (c >>= showE)
-showE (Defer a)  = mappend "Defer " <$> (a >>= showE)
+  <$> showE a 
+  <*> showE b
+  <*> showE c
+showE (Defer a)  = mappend "Defer " <$> showE a
 showE (Less a b) = (\a b -> concat ["Less (", a, ") (", b, ")"]) 
-  <$> (a >>= showE) 
-  <*> (b >>= showE)
+  <$> showE a 
+  <*> showE b
 showE (Minus a b) = (\a b -> concat ["Minus (", a, ") (", b, ")"]) 
-  <$> (a >>= showE) 
-  <*> (b >>= showE)
-showE (Formula a)  = mappend "Formula " <$> (a >>= showE)
+  <$> showE a 
+  <*> showE b
+showE (Formula a)  = mappend "Formula " <$> showE a
 
 
 

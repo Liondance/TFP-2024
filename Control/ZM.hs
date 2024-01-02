@@ -3,16 +3,19 @@ module Control.ZM where
 import GHC.Stack
 import Control.Exception hiding (catchJust)
 import Data.Dynamic 
-newtype ZM s a = ZM { runZillyM :: s -> IO (s,a) } deriving (Typeable)
+
+-- un monad App
+
+newtype ZM s a = ZM { runZillyM :: s -> IO a } deriving (Typeable)
 
 instance Monad (ZM s) where
   return = pure
   ma >>= f = ZM $ \s -> do
-    (s',a) <- runZillyM ma s
-    runZillyM (f a) s'
+    a <- runZillyM ma s
+    runZillyM (f a) s
 
 instance Applicative (ZM s) where
-  pure x = ZM $ \s -> pure (s,x)
+  pure x = ZM $ \_ -> pure x
   mf <*> mx  = do
     f <- mf
     x <- mx
@@ -28,42 +31,24 @@ instance Functor (ZM s) where
 -------------
 
 liftIO :: IO a -> ZM s a
-liftIO ma = ZM $ \s -> (\a -> (s,a)) <$> ma
+liftIO ma = ZM $ const  ma
 
 ----------------
 -- Monad Reader
 ----------------
 
 ask :: ZM s s
-ask = ZM $ \s -> pure (s,s)
+ask = ZM $ \s -> pure s
 
 local :: (s -> s) -> ZM s a -> ZM s a
 local f ma = ZM $ runZillyM ma . f
 
 reader :: (r -> a) -> ZM r a
-reader f = ZM $ \s -> pure (s, f s)
+reader f = ZM $ \s -> pure $ f s
 
 asks :: (r -> a) -> ZM r a
 asks = reader
 
-----------------
--- Monad State
-----------------
-
-get :: ZM s s
-get = ask
-
-put :: s -> ZM s ()
-put s = ZM $ \_ -> pure (s,())
-
-state :: (s -> (s, a)) -> ZM s a
-state f = ZM $ pure . f
-
-modify :: (s -> s) -> ZM s ()
-modify f = ZM $ \s -> pure (f s, ())
-
-gets :: (s -> a) -> ZM s a
-gets  = asks
 
 ----------------
 -- Monad Throw
