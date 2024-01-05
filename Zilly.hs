@@ -22,7 +22,6 @@ import Control.Concurrent.MVar
 
 rvalue :: E Env -> ZME (E Env) 
 rvalue (Val v) = pure . Val $ v
--- example
 rvalue (Minus ma mb) = do
   a <- rvalue ma 
   b <- rvalue mb 
@@ -43,17 +42,18 @@ rvalue (Minus ma mb) = do
         <> ", as its first argument and"
         <> s' 
         <> " as its second"
-
 rvalue c@(ClosureV {}) = pure c
 rvalue (Sym s) = getVar s >>= rvalue
 rvalue (Lambda t v b) = do
   env <- ask
   pure $ ClosureV env v b
 rvalue (Apply f x) = rvalue f >>= \f -> case f of
-  (ClosureV env v b) -> do
+  (ClosureV env v b) -> do  -- ClosureV env "x" (Sym "x") == \x -> x
+    s0 <- showE x
     x' <- rvalue x
-    value <- liftIO $ newMVar (toDyn x')
-    let env' = M.insert v value env
+    s  <- showE x'
+    value <- liftIO $ newMVar (toDyn x') -- Minus (Sym "x") (Minus (Val 0) (Sym "y")) 
+    let env' = M.insert v value env -- insert "x" (Minus (Sym "x") (Minus (Val 0) (Sym "y")))
     local (const env') (rvalue b)
   e -> do 
     s <- showE e
@@ -86,7 +86,16 @@ rvalue (Less ma mb) = do
         <> ", as its first argument and"
         <> s' 
         <> " as its second"
-rvalue (Formula ma) = pure $ Formula ma
+rvalue (Formula ma) = case ma of
+  Sym varName -> do
+    env <- ask
+    v <- getVar varName
+    pure $ ClosureF env v
+
+  _           -> do 
+    env <- ask
+    pure $ ClosureF env ma 
+rvalue (ClosureF env e) = local (const env) (rvalue e)
 
 {-
 <Z> x := 5;

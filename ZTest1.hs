@@ -63,17 +63,20 @@ prog1 = -- cvalue, rvalue, and identity
         Define (Lazy Z) (Sym "z") (Defer (Minus (Sym "x") (Minus (Val 0) (Sym "y")))),
 
         Define (Lazy Z) (Sym "t") (Minus (Sym "x") (Minus (Val 0) (Sym "y"))),
-
+{- 
         Show "cv(z) ==> " (Formula (Sym "z")),
 
         Show "rv(z) ==> " (Apply (Sym "rv") (Sym "z")),
 
         Show "id(z) ==> " (Apply (Sym "id") (Sym "z")),
 
-        Show "id(cv(z)) ==> " (Apply (Sym "id") (Formula (Sym "z"))),
+        Show "id(cv(z)) ==> " (Apply (Sym "id") (Formula (Sym "z"))), -}
+        -- ACA
+        Show "rv(cv(z)) ==> " (Apply (Sym "rv") (Formula (Sym "z"))),
 
-        Show "rv(cv(z)) ==> " (Apply (Sym "rv") (Formula (Sym "z")))
+        Show "z ==> " (Sym "z"),
 
+        Show "t ==> " (Sym "t")
         
     ]
 
@@ -84,11 +87,12 @@ prog2 = -- deferred evaluation and mutation
 
         Define (Lazy Z)  (Sym "min") (Defer (If (Less (Sym "x") (Sym "y")) (Sym "x") (Sym "y"))),
         Define    Z      (Sym "t00") (Sym "min"),
-
+        Show "t00 ==> " (Sym "t00"),
         Assign (Sym "y") (Minus (Sym "y") (Val 30)),
 
-        Define    Z      (Sym "t01") (Sym "min")
-
+        Define    Z      (Sym "t01") (Sym "min"),
+        Show "t00 ==> " (Sym "t00"),
+        Show "t01 ==> " (Sym "t01")
         
     ]
 
@@ -115,9 +119,9 @@ prog3 = -- Curried function application
         ),
 
         Define Z (Sym "x") (Apply (Apply (Sym "plus") (Val 42)) (Val 25)),
-        Define Z (Sym "y") (Apply (Apply (Sym "minus") (Sym "x")) (Val 25))
-
-        
+        Define Z (Sym "y") (Apply (Apply (Sym "minus") (Sym "x")) (Val 25)),
+        Show "" (Sym "x"),
+        Show "" (Sym "y")  
     ]
 
 prog4 = -- partial evaluation
@@ -146,7 +150,9 @@ prog4 = -- partial evaluation
         Define Z (Sym "sub25") (Apply (Sym "sub") (Val 25)),
 
         Define Z (Sym "x") (Apply (Sym "add25") (Val 42)),
-        Define Z (Sym "y") (Apply (Sym "sub25") (Sym "x"))
+        Define Z (Sym "y") (Apply (Sym "sub25") (Sym "x")),
+        Show "" (Sym "x"),
+        Show "" (Sym "y")
 
         
     ]
@@ -165,12 +171,13 @@ prog5 = -- scope + partial application with non-local context
 
         Assign (Sym "x") (Apply (Apply (Sym "nesty") (Val 7)) (Val 32)),
         Define Z (Sym "x67") (Sym "x"),
-
+        Show "x67 ==> " (Sym "x67"),
         Assign (Sym "x") (Apply (Apply (Sym "nesty") (Val 32)) (Val 7)),
         Define Z (Sym "x42") (Sym "x"),
-
+        Show "x42 ==> " (Sym "x42"),
         Define (Fun Z Z) (Sym "m7") (Apply (Sym "nesty") (Val 7)),
-        Assign (Sym "x") (Apply (Sym "m7") (Val 32))
+        Assign (Sym "x") (Apply (Sym "m7") (Val 32)),
+        Show "x ==> " (Sym "x")
 
         
     ]

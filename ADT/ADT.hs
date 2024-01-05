@@ -29,6 +29,7 @@ data E e =
     | Minus   (E e) (E e)              -- ^ subtraction (minus predefined function): minus(x)(y) =<>=> x - y
     | Formula (E e)
     | ClosureV e String (E e) 
+    | ClosureF e (E e)
     deriving Typeable
 
 

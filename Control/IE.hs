@@ -91,7 +91,12 @@ showE (Minus a b) = (\a b -> concat ["Minus (", a, ") (", b, ")"])
   <$> showE a 
   <*> showE b
 showE (Formula a)  = mappend "Formula " <$> showE a
-
+showE (ClosureV _ s e) = do
+  s' <- showE e
+  pure $ concat ["ClosureV env ", show s, " (", s', ")"]
+showE (ClosureF _ e) = do
+  s' <- showE e
+  pure $ concat ["ClosureV env ", " (", s', ")"]
 
 
 ----------------------------
