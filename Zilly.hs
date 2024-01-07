@@ -5,7 +5,7 @@
 module Zilly where
 
 import Prelude hiding (lookup)
-
+import Debug.Trace (trace)
 -- Stack
 import ADT.Stack as Stack hiding (empty)
 
@@ -260,7 +260,7 @@ exec (status, stack, global) (Show prompt exp) =
     case exp' of
         Error x -> (status, stack, global')
             where global' = insert global prompt (Lazy Z, x, (Sym "Error"))
-        exp'' -> (status, stack, global')
+        exp'' -> trace (prompt <> show exp'') (status, stack, global')
             where global' = insert global prompt (Lazy Z, "OK", exp'')
 
 exec (status, stack, global) (Halt) = ('H', stack, global)
