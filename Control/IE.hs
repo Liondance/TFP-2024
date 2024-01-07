@@ -96,7 +96,7 @@ showE (ClosureV _ s e) = do
   pure $ concat ["ClosureV env ", show s, " (", s', ")"]
 showE (ClosureF _ e) = do
   s' <- showE e
-  pure $ concat ["ClosureV env ", " (", s', ")"]
+  pure $ concat ["ClosureF env ", " (", s', ")"]
 
 
 ----------------------------

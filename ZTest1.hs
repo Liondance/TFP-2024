@@ -63,15 +63,15 @@ prog1 = -- cvalue, rvalue, and identity
         Define (Lazy Z) (Sym "z") (Defer (Minus (Sym "x") (Minus (Val 0) (Sym "y")))),
 
         Define (Lazy Z) (Sym "t") (Minus (Sym "x") (Minus (Val 0) (Sym "y"))),
-{- 
+
         Show "cv(z) ==> " (Formula (Sym "z")),
 
         Show "rv(z) ==> " (Apply (Sym "rv") (Sym "z")),
 
         Show "id(z) ==> " (Apply (Sym "id") (Sym "z")),
 
-        Show "id(cv(z)) ==> " (Apply (Sym "id") (Formula (Sym "z"))), -}
-        -- ACA
+        Show "id(cv(z)) ==> " (Apply (Sym "id") (Formula (Sym "z"))), 
+
         Show "rv(cv(z)) ==> " (Apply (Sym "rv") (Formula (Sym "z"))),
 
         Show "z ==> " (Sym "z"),
@@ -225,9 +225,22 @@ prog7 =
         Define       Z  (Sym "y") (Val 23),
         Define (Lazy Z) (Sym "z") (Defer ((Apply (Apply (Sym "plus") (Sym "x")) (Sym "y")))),
         Define       Z  (Sym "a") (Sym "z"),
+        
+        Show "x ==> " (Sym "x"),
+        Show "y ==> " (Sym "y"),
+        Show "z ==> " (Sym "z"),
+        Show "a ==> " (Sym "a"),
+
         Assign          (Sym "x") (Apply (Apply (Sym "plus") (Sym "x")) (Val 11)),
         Assign          (Sym "y") (Apply (Apply (Sym "plus") (Sym "y")) (Val 14)),
-        Define       Z  (Sym "b") (Sym "z")
+        Define       Z  (Sym "b") (Sym "z"),
+        
+        Show "x ==> " (Sym "x"),
+        Show "y ==> " (Sym "y"),
+        Show "z ==> " (Sym "z"),
+        Show "a ==> " (Sym "a"),
+        Show "b ==> " (Sym "b")
+        
 
         
     ]
@@ -240,13 +253,21 @@ prog8 =
         Define    Z      (Sym "y")          (Apply (Sym "dec") (Sym "x")),
         Define (Lazy Z)  (Sym "z")   (Defer (Apply (Sym "dec") (Sym "x"))),
 
+        Show "x ==> " (Sym "x"),
+        Show "y ==> " (Sym "y"),
+        Show "z ==> " (Sym "z"),
+
         Define    Z      (Sym "ty0") (Sym "y"),
         Define    Z      (Sym "tz0") (Sym "z"),
         Assign           (Sym "x")   (Val 68),
         Define    Z      (Sym "ty1") (Sym "y"),
-        Define    Z      (Sym "tz1") (Sym "z")
+        Define    Z      (Sym "tz1") (Sym "z"),
 
-        
+        Show "ty0 ==> " (Sym "ty0"),
+        Show "tz0 ==> " (Sym "tz0"),
+        Show "x ==> " (Sym "x"),
+        Show "ty1 ==> " (Sym "ty1"),
+        Show "tz1 ==> " (Sym "tz1")
     ]
 
 prog9 =
@@ -321,5 +342,43 @@ fibo =
         ),
         Define Z (Sym "z") $ Apply (Sym "fibo") (Val 3), 
         Show ""  $ Sym "z"
+        
+    ]
+
+fiboIter =
+    [
+        Define (Fun Z Z) (Sym "chs") (
+            Lambda Z ("x") (Minus (Val 0) (Sym "x"))
+        ),
+
+        Define (Fun Z (Fun Z Z)) (Sym "plus") (
+            Lambda Z ("x") (
+                Lambda Z ("y") (
+                    Minus (Sym "x") (Apply (Sym "chs") (Sym "y"))
+                )
+            )
+        ),
+
+        Define Z (Sym "n2") (Val 0),
+        Define Z (Sym "n1") (Val 1),
+        Define Z (Sym "cont") (Val 10),
+
+        Branch (Val 2 `Less` Sym "cont")
+
+          [
+            While (Sym "cont")
+              [ Show "n1 ==> " (Sym "n2"),
+                Define Z (Sym "aux") (Sym "n2"),
+                Assign (Sym "n2") (Sym "n1"),
+                Assign (Sym "n1") (Sym "plus" `Apply` Sym "n1" `Apply` Sym "aux"),
+                Assign (Sym "cont") (Sym "cont" `Minus` Val 1)
+              ]
+          ]
+          [
+            Show "cont ==> " (Sym "cont")
+          ]
+        ,
+
+        Show "n1 ==> " (Sym "n1")
         
     ]

@@ -125,6 +125,25 @@ run' (Show s e) = do
   e' <- showE =<< rvalue e
   liftIO . putStrLn $ s <> e'
   ask
+run' (Branch cond as bs) = rvalue cond >>= \c -> case c of
+  Val n -> do
+    oldEnv <- ask
+    oldEnv <$ foldM (\e a -> local (const e)(run' a)) oldEnv
+      (if n >= 0 then as else bs)
+  c     -> do 
+    s <- showE c
+    throwM . BT $ "Branch conditions must be integer valued. But instead got: " <> s
+run' (While cond as) = rvalue cond >>= \c -> case c of
+  Val n -> do
+    oldEnv <- ask
+    if n >= 0 
+      then do 
+        foldM (\e a -> local (const e)(run' a)) oldEnv as
+        local (const oldEnv) (run' $ While cond as)
+      else ask 
+  c     -> do 
+    s <- showE c
+    throwM . BT $ "While conditions must be integer valued. But instead got: " <> s
 
 
 run :: Program Env -> IO ()
