@@ -1,4 +1,4 @@
-module Zilly'Test where
+module ZTest1 where
 
 import Zilly
 
