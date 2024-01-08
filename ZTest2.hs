@@ -236,9 +236,6 @@ parseZillyFile fp = do
     print r
 
 execStatementIO :: State -> Statement -> IO State
-execStatementIO store (Show s e) = do
-  putStrLn $ s <> show (rvalue store e)
-  pure store
 execStatementIO store action = pure $ exec store action
 
 execProgramIO :: State -> Program -> IO State
