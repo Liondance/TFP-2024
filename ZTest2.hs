@@ -3,14 +3,15 @@ module ZTest2 where
 import Debug.Trace
 
 -- Definitions
-import Zilly (Z,Symbol,T(..),E(..),Statement(..),Program, mkParens, rvalue, exec, State, empty)
+import Zilly (Z, Symbol, T(..), E(..), Statement(..), Program, rvalue, exec, State, empty)
+import Pretty (mkParens)
 
 -- Useful for parsing
 import Data.Functor
 import Control.Applicative hiding (optional, empty)
 import Control.Monad
 import Data.Functor.Identity
-import Text.Parsec hiding ((<|>),many,State(..))
+import Text.Parsec hiding ((<|>), many, State(..))
 import Data.Maybe (fromMaybe)
 
 -- Testing
@@ -564,7 +565,6 @@ testAll = do
   putStrLn "-------------------------"
   print =<< testDefer
 
-
   putStrLn "-------------------------"
   putStrLn "testDefine"
   putStrLn "-------------------------"
@@ -579,4 +579,3 @@ testAll = do
   putStrLn "testMagic"
   putStrLn "-------------------------"
   print =<< testMagic
-
