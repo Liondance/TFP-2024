@@ -15,7 +15,7 @@ import Text.Parsec hiding ((<|>), many, State(..))
 import Data.Maybe (fromMaybe)
 
 -- Testing
--- import Test.HUnit hiding(State)
+import Test.HUnit hiding(State)
 
 type Programs = [Program]
 type Parser m a = ParsecT String () m a
