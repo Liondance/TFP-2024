@@ -138,7 +138,7 @@ run' (While cond as) = rvalue cond >>= \c -> case c of
     oldEnv <- ask
     if n >= 0 
       then do 
-        foldM (\e a -> local (const e)(run' a)) oldEnv as
+        foldM_ (\e a -> local (const e) (run' a)) oldEnv as
         local (const oldEnv) (run' $ While cond as)
       else ask 
   c     -> do 
@@ -147,8 +147,7 @@ run' (While cond as) = rvalue cond >>= \c -> case c of
 
 
 run :: Program Env -> IO ()
-run -- = print . M.keys <=< foldM (\e a -> runZillyM (run' a) e) M.empty
-  = void . foldM (\e a -> runZillyM (run' a) e) M.empty
+run = void . foldM (\e a -> runZillyM (run' a) e) M.empty
 
 p1 :: IO ()
 p1 = run 
