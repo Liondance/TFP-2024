@@ -21,20 +21,16 @@ import Control.Exception
 --
 
 
-propagateClosureF :: E Env -> ZME (E Env)
-propagateClosureF (Formula ma) = case ma of
-  Formula ma' -> do
-    env <- ask
-    propagateClosureF (ClosureF env ma')
-  ClosureF env v -> do
-    propagateClosureF v <&> ClosureF env
-  _           -> do
-    env <- ask
-    pure $ ClosureF env ma
-propagateClosureF (Defer ma) = propagateClosureF ma <&> Defer
-propagateClosureF (Lambda t v b) = propagateClosureF b <&> Lambda t v
-propagateClosureF (Apply f x) = Apply <$> propagateClosureF f <*> propagateClosureF x
-propagateClosureF a = pure a
+propagateClosures :: E Env -> ZME (E Env)
+propagateClosures (Formula ma) = do
+  env <- ask
+  ClosureF env <$> propagateClosures ma
+propagateClosures (Defer ma) = Defer <$> propagateClosures ma 
+propagateClosures (Lambda t v b) = do
+  env <- ask
+  ClosureV env v <$> local (const env) (propagateClosures b)
+propagateClosures (Apply f x) = Apply <$> propagateClosures f <*> propagateClosures x
+propagateClosures a = pure a
 
 rvalue :: E Env -> ZME (E Env)
 rvalue (Val v) = pure . Val $ v
@@ -59,10 +55,8 @@ rvalue (Minus ma mb) = do
         <> s'
         <> " as its second"
 rvalue c@(ClosureV {}) = pure c
-rvalue (Sym s) = getVar s >>= rvalue
-rvalue (Lambda t v b) = do
-  env <- ask
-  pure $ ClosureV env v b
+rvalue (Sym s) = getVar s >>= propagateClosures >>= rvalue
+rvalue (Lambda t v b) = throwM . BT $ "Lambdas should disappear when at rvalue-ing." 
 rvalue (Apply f x) = rvalue f >>= \f -> case f of
   (ClosureV env v b) -> do  -- ClosureV env "x" (Sym "x") == \x -> x
     s0 <- showE x
@@ -102,19 +96,12 @@ rvalue (Less ma mb) = do
         <> ", as its first argument and"
         <> s'
         <> " as its second"
-rvalue (Formula ma) = case ma of
-  Sym varName -> do
-    env <- ask
-    v <- getVar varName
-    pure $ ClosureF env v
-
-  _           -> do
-    env <- ask
-    pure $ ClosureF env ma
+rvalue (Formula ma) = throwM . BT $ "Formulas should disappear when at rvalue-ing." 
 rvalue (ClosureF env e) = local (const env) (rvalue e)
 
 
-rvalue' = propagateClosureF <=< rvalue
+rvalue' :: E Env -> ZM Env (E Env)
+rvalue' = propagateClosures >=> rvalue
 
 run' :: Statement Env -> ZME Env
 run' (Define t a b)= case a of
