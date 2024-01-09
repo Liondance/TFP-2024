@@ -249,6 +249,26 @@ prog9 =
         Halt
     ]
 
+prog10 = 
+  [ Define Z (Sym "x") (Val 42)
+  , Define (Fun Z Z) (Sym "chs") 
+    ( Lambda Z (Sym "x") (Minus (Val 0) (Sym "x")))
+  , Define (Fun Z (Fun Z Z)) (Sym "plus") (
+    Lambda Z (Sym "x") (
+      Lambda Z (Sym "y") (
+        Minus (Sym "x") (Apply (Sym "chs") (Sym "y"))
+        )
+      )
+    )
+  , Define (Lazy . Lazy $ Z) (Sym "z") $ Defer (Defer (Formula $ Sym "x"))
+  , Define (Z `Fun` Z) (Sym "rv")
+    $ Lambda Z (Sym "x") $ Sym "x"
+  , Define (Z `Fun` Z) (Sym "f") 
+    $ Lambda Z (Sym "x") $ Lambda (Lazy Z) (Sym "y") $ Sym "rv" `Apply` Sym "y"
+  , Show "f(99)(z) ==> " $ Sym "f" `Apply` Val 99 `Apply` Sym "z"
+  , Show "rv(f(99)(z)) ==> " $ Sym "rv" `Apply` (Sym "f" `Apply` Val 99 `Apply` Sym "z")
+  ]
+
 progA =
     [
     ]
