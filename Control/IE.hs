@@ -56,14 +56,6 @@ assignVar varName varBody = asks (lookup varName) >>= \a -> case a of
     _ -> void . liftIO $ swapMVar untypedVar (toDyn varBody)
   Nothing         -> throwM $ VND varName
 
-withLocalVar :: T -> String -> E Env -> ZME a -> ZME a
-withLocalVar _ varName varBody cont = do
-  v <- liftIO $ newMVar (toDyn varBody)
-  local (insert varName v) $ do
-    liftIO $ putStrLn "----------------------------"
-    asks keys >>= liftIO . print 
-    liftIO $ putStrLn "----------------------------"
-    cont
 
 getVar :: String -> ZME (E Env)
 getVar varName = asks (lookup varName) >>= \a -> case a of
