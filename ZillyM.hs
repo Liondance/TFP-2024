@@ -22,15 +22,9 @@ import Control.Exception
 
 cvalue :: E Env -> ZME (E Env)
 cvalue (Sym s) = getVar s
+-- cvalue (ClosureF _ env e@(Sym s)) = local (const env) $ cvalue e
 cvalue a       = pure a
 
-propagateClosures :: E Env -> ZME (E Env)
-propagateClosures (Formula ma) = do
-  env <- ask
-  ClosureF CSet env <$> propagateClosures ma
-propagateClosures (Defer ma) = Defer <$> propagateClosures ma 
-propagateClosures (Apply f x) = Apply f <$> propagateClosures x
-propagateClosures a = pure a
 
 rvalue :: E Env -> ZME (E Env)
 rvalue (Val v) = pure . Val $ v
@@ -55,18 +49,16 @@ rvalue (Minus ma mb) = do
         <> s'
         <> " as its second"
 rvalue c@(ClosureV {}) = pure c
-rvalue (Sym s) = getVar s >>= propagateClosures >>= rvalue
+rvalue (Sym s) = getVar s >>= rvalue
 rvalue (Lambda t v b) = do 
   env <- ask
   pure $ ClosureV env v b
-  --throwM . BT $ "Lambdas should disappear when at rvalue-ing." 
 rvalue (Apply f x) = rvalue f >>= \f -> case f of
-  (ClosureV env v b) -> do  -- ClosureV env "x" (Sym "x") == \x -> x
+  (ClosureV env v b) -> do 
     s0 <- showE x
     x' <- rvalue x
-    value <- liftIO $ newMVar (toDyn x') -- Minus (Sym "x") (Minus (Val 0) (Sym "y")) 
-    let env' = M.insert v value env -- insert "x" (Minus (Sym "x") (Minus (Val 0) (Sym "y")))
-    --ClosureF CEval env' <$> local (const env') (rvalue' b)
+    value <- liftIO $ newMVar (toDyn x') 
+    let env' = M.insert v value env
     local (const env') (rvalue' b)
   e -> do
     s <- showE e
@@ -100,14 +92,17 @@ rvalue (Less ma mb) = do
         <> s'
         <> " as its second"
 rvalue (Formula ma) = do 
-  s <- showE ma
-  throwM . BT $ "Formulas should disappear when at rvalue-ing: " <> s 
+  env <- ask
+  ma' <- cvalue ma
+  pure $ ClosureF CEval env ma'
+  {- s <- showE ma
+  throwM . BT $ "Formulas should disappear when at rvalue-ing: " <> s  -}
 rvalue (ClosureF CEval env e) = local (const env) (rvalue e)
 rvalue (ClosureF CSet env e) = ClosureF CEval env <$> cvalue e
 
 
 rvalue' :: E Env -> ZM Env (E Env)
-rvalue' = rvalue <=< propagateClosures
+rvalue' = rvalue
 
 run' :: Statement Env -> ZME Env
 run' (Define t a b)= case a of
@@ -148,9 +143,6 @@ run' (While cond as) = rvalue' cond >>= \c -> case c of
   c     -> do
     s <- showE c
     throwM . BT $ "While conditions must be integer valued. But instead got: " <> s
-
-
-
 
 run :: Program Env -> IO ()
 run = handle @SomeException print . void . foldM (\e a -> runZillyM (run' a) e) M.empty

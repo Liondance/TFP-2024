@@ -110,8 +110,8 @@ prog4 = -- partial evaluation
 
         Define Z (Sym "x") (Apply (Sym "add25") (Val 42)),
         Define Z (Sym "y") (Apply (Sym "sub25") (Sym "x")),
-        Show "" (Sym "x"),
-        Show "" (Sym "y")
+        Show "x ==> " (Sym "x"),
+        Show "y ==> " (Sym "y")
 
         
     ]
@@ -191,20 +191,20 @@ prog7 =
         Define (Lazy Z) (Sym "z") (Defer ((Apply (Apply (Sym "plus") (Sym "x")) (Sym "y")))),
         Define       Z  (Sym "a") (Sym "z"),
         
-        Show "x ==> " (Sym "x"),
-        Show "y ==> " (Sym "y"),
-        Show "z ==> " (Sym "z"),
-        Show "a ==> " (Sym "a"),
+        Show "x ==> " (Sym "x"), -- 19
+        Show "y ==> " (Sym "y"), -- 23
+        Show "z ==> " (Sym "z"), -- 42
+        Show "a ==> " (Sym "a"), -- 42
 
         Assign          (Sym "x") (Apply (Apply (Sym "plus") (Sym "x")) (Val 11)),
         Assign          (Sym "y") (Apply (Apply (Sym "plus") (Sym "y")) (Val 14)),
         Define       Z  (Sym "b") (Sym "z"),
         
-        Show "x ==> " (Sym "x"),
-        Show "y ==> " (Sym "y"),
-        Show "z ==> " (Sym "z"),
-        Show "a ==> " (Sym "a"),
-        Show "b ==> " (Sym "b")
+        Show "x ==> " (Sym "x"), -- 30
+        Show "y ==> " (Sym "y"), -- 37
+        Show "z ==> " (Sym "z"), -- 67
+        Show "a ==> " (Sym "a"), -- 42
+        Show "b ==> " (Sym "b")  -- 67 
         
 
         
@@ -218,9 +218,9 @@ prog8 =
         Define    Z      (Sym "y")          (Apply (Sym "dec") (Sym "x")),
         Define (Lazy Z)  (Sym "z")   (Defer (Apply (Sym "dec") (Sym "x"))),
 
-        Show "x ==> " (Sym "x"),
-        Show "y ==> " (Sym "y"),
-        Show "z ==> " (Sym "z"),
+        Show "x ==> " (Sym "x"), -- 43
+        Show "y ==> " (Sym "y"), -- 42
+        Show "z ==> " (Sym "z"), -- 42
 
         Define    Z      (Sym "ty0") (Sym "y"),
         Define    Z      (Sym "tz0") (Sym "z"),
@@ -228,11 +228,11 @@ prog8 =
         Define    Z      (Sym "ty1") (Sym "y"),
         Define    Z      (Sym "tz1") (Sym "z"),
 
-        Show "ty0 ==> " (Sym "ty0"),
-        Show "tz0 ==> " (Sym "tz0"),
-        Show "x ==> " (Sym "x"),
-        Show "ty1 ==> " (Sym "ty1"),
-        Show "tz1 ==> " (Sym "tz1")
+        Show "ty0 ==> " (Sym "ty0"), -- 42
+        Show "tz0 ==> " (Sym "tz0"), -- 42
+        Show "x ==> " (Sym "x"),     -- 68
+        Show "ty1 ==> " (Sym "ty1"), -- 42
+        Show "tz1 ==> " (Sym "tz1")  -- 67
     ]
 
 prog9 =
@@ -247,7 +247,9 @@ prog9 =
                 )
             )
         ),
-
+        -- (x - y) - (y - x) 
+        -- (x - y) - y + x
+        -- 2x - 2y
         Define Z (Sym "z") (
             Apply (Apply (Sym "minus") (
                 Minus (Sym "x") (Sym "y")
@@ -255,7 +257,7 @@ prog9 =
                 Minus (Sym "y") (Sym "x")
             )
         ),
-        Show "" (Sym "z")        
+        Show "z ==> " (Sym "z") -- 50 
     ]
 
 prog10 = 
@@ -274,7 +276,7 @@ prog10 =
     $ Lambda Z "x" $ Sym "x"
   , Define (Z `Fun` Z) (Sym "f") 
     $ Lambda Z "x" $ Lambda (Lazy Z) "y" $ Sym "rv" `Apply` Sym "y"
-  , Show "f(99)(z) ==> " $ Sym "f" `Apply` Val 99 `Apply` Sym "z"
+  , Show "f(99)(z) ==> " $ Sym "f" `Apply` Val 99 `Apply` Sym "z" -- 42
   ]
 
 
@@ -377,3 +379,11 @@ fiboIter =
         Show "n1 ==> " (Sym "n1")
         
     ]
+
+errorChecking = 
+  [ Define Z (Sym "x") $ Val 7 
+  , Define Z (Sym "x") $ Val 9
+  , Define Z (Sym "y") $ Val 10
+  , Show "x ==> " $ Sym "x"
+  , Show "y ==> " $ Sym "y" 
+  ]
