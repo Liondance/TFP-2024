@@ -22,11 +22,12 @@ prog1 = -- cvalue, rvalue, and identity
 
         Define (Lazy Z) (Sym "t") (Minus (Sym "x") (Minus (Val 0) (Sym "y"))),
 
-        Show "cv(z) ==> " (Formula (Sym "z")),
+        Show "cv(z) ==> " (Formula (Sym "z")), 
 
         Show "rv(z) ==> " (Apply (Sym "rv") (Sym "z")),
 
         Show "id(z) ==> " (Apply (Sym "id") (Sym "z")),
+        --
 
         Show "id(cv(z)) ==> " (Apply (Sym "id") (Formula (Sym "z"))), 
 
@@ -78,8 +79,8 @@ prog3 = -- Curried function application
 
         Define Z (Sym "x") (Apply (Apply (Sym "plus") (Val 42)) (Val 25)),
         Define Z (Sym "y") (Apply (Apply (Sym "minus") (Sym "x")) (Val 25)),
-        Show "" (Sym "x"),
-        Show "" (Sym "y")  
+        Show "x ==> " (Sym "x"),
+        Show "y ==> " (Sym "y")  
     ]
 
 prog4 = -- partial evaluation
@@ -147,21 +148,27 @@ prog6 = -- like prog5 with lazy expressions
         Define (Fun Z (Fun Z (Lazy Z))) (Sym "nesty") (
             Lambda Z ("a") (
                 Lambda Z ("b") (
+                    -- x - (a - b) = x + b - a
                     Defer (Minus (Sym "x") (Minus (Sym "a") (Sym "b")))
                 )
             )
         ),
 
         Define (Lazy Z) (Sym "z67") (Apply (Apply (Sym "nesty") (Val 7)) (Val 32)),
+        Show "z67 ==> " $ Sym "z67",
         Assign (Sym "x") (Sym "z67"),
+        Show "x ==> " $ Sym "x",
 
         Define (Lazy Z) (Sym "z42") (Apply (Apply (Sym "nesty") (Val 32)) (Val 7)),
+        Show "z67 ==> " $ Sym "z42",
         Assign (Sym "x") (Sym "z42"),
+        Show "x ==> " $ Sym "x",
 
         Define (Fun Z (Lazy Z)) (Sym "n7") (Apply (Sym "nesty") (Val 7)),
         Assign (Sym "z67") (Apply (Sym "n7") (Val 32)),
-        Assign (Sym "x") (Sym "z67")
-
+        Show "z67 ==> " $ Sym "z67",
+        Assign (Sym "x") (Sym "z67"),
+        Show "x ==> " $ Sym "x"
         
     ]
 

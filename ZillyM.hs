@@ -20,16 +20,16 @@ import Control.Exception
 -- Runtime
 --
 
+cvalue :: E Env -> ZME (E Env)
+cvalue (Sym s) = getVar s
+cvalue a       = pure a
 
 propagateClosures :: E Env -> ZME (E Env)
 propagateClosures (Formula ma) = do
   env <- ask
-  ClosureF env <$> propagateClosures ma
+  ClosureF CSet env <$> propagateClosures ma
 propagateClosures (Defer ma) = Defer <$> propagateClosures ma 
-propagateClosures (Lambda t v b) = do
-  env <- ask
-  ClosureV env v <$> local (const env) (propagateClosures b)
-propagateClosures (Apply f x) = Apply <$> propagateClosures f <*> propagateClosures x
+propagateClosures (Apply f x) = Apply f <$> propagateClosures x
 propagateClosures a = pure a
 
 rvalue :: E Env -> ZME (E Env)
@@ -56,15 +56,18 @@ rvalue (Minus ma mb) = do
         <> " as its second"
 rvalue c@(ClosureV {}) = pure c
 rvalue (Sym s) = getVar s >>= propagateClosures >>= rvalue
-rvalue (Lambda t v b) = throwM . BT $ "Lambdas should disappear when at rvalue-ing." 
+rvalue (Lambda t v b) = do 
+  env <- ask
+  pure $ ClosureV env v b
+  --throwM . BT $ "Lambdas should disappear when at rvalue-ing." 
 rvalue (Apply f x) = rvalue f >>= \f -> case f of
   (ClosureV env v b) -> do  -- ClosureV env "x" (Sym "x") == \x -> x
     s0 <- showE x
     x' <- rvalue x
-    s  <- showE x'
     value <- liftIO $ newMVar (toDyn x') -- Minus (Sym "x") (Minus (Val 0) (Sym "y")) 
     let env' = M.insert v value env -- insert "x" (Minus (Sym "x") (Minus (Val 0) (Sym "y")))
-    local (const env') (rvalue b)
+    --ClosureF CEval env' <$> local (const env') (rvalue' b)
+    local (const env') (rvalue' b)
   e -> do
     s <- showE e
     throwM . BT $ "Can only apply functions, but instead got: " <> s
@@ -75,7 +78,7 @@ rvalue (If mb ma mc) = do
     x     -> do
       s <- showE x
       throwM . BT $ "Ifs first argument must be a value" <> s
-rvalue (Defer ma) = pure ma
+rvalue (Defer ma) = flip (ClosureF CEval) ma <$> ask
 rvalue (Less ma mb) = do
   a <- rvalue ma
   b <- rvalue mb
@@ -96,12 +99,15 @@ rvalue (Less ma mb) = do
         <> ", as its first argument and"
         <> s'
         <> " as its second"
-rvalue (Formula ma) = throwM . BT $ "Formulas should disappear when at rvalue-ing." 
-rvalue (ClosureF env e) = local (const env) (rvalue e)
+rvalue (Formula ma) = do 
+  s <- showE ma
+  throwM . BT $ "Formulas should disappear when at rvalue-ing: " <> s 
+rvalue (ClosureF CEval env e) = local (const env) (rvalue e)
+rvalue (ClosureF CSet env e) = ClosureF CEval env <$> cvalue e
 
 
 rvalue' :: E Env -> ZM Env (E Env)
-rvalue' = propagateClosures >=> rvalue
+rvalue' = rvalue <=< propagateClosures
 
 run' :: Statement Env -> ZME Env
 run' (Define t a b)= case a of
