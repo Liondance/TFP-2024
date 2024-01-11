@@ -1,6 +1,6 @@
 module ADT.ADT where
 
-import Data.Dynamic
+import Data.Dynamic ( Typeable )
 
 -- Zilly
 
@@ -10,7 +10,6 @@ type Symbol = String
 
 -- reserved words: Z, lazy, if, lt, minus, show
 
-data ClosureState = CSet | CEval deriving (Typeable,Show)
 
 -- Types
 data T =
@@ -31,8 +30,8 @@ data E e =
     | Minus   (E e) (E e)              -- ^ subtraction (minus predefined function): minus(x)(y) =<>=> x - y
     | Formula (E e)
     | ClosureV e String (E e) 
-    | ClosureF ClosureState e (E e)
-    deriving Typeable
+    | ClosureF e (E e)
+    deriving (Typeable, Show, Functor)
 
 
 -- Statements

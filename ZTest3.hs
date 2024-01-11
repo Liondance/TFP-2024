@@ -23,15 +23,19 @@ prog1 = -- cvalue, rvalue, and identity
         Define (Lazy Z) (Sym "t") (Minus (Sym "x") (Minus (Val 0) (Sym "y"))),
 
         Show "cv(z) ==> " (Formula (Sym "z")), 
+        -- Minus (Sym "x") (Minus (Val 0) (Sym "y"))
 
-        Show "rv(z) ==> " (Apply (Sym "rv") (Sym "z")),
+        Show "rv(z) ==> " (Apply (Sym "rv") (Sym "z")), 
+        -- Val 15
 
-        Show "id(z) ==> " (Apply (Sym "id") (Sym "z")),
-        --
+        Show "id(z) ==> " (Apply (Sym "id") (Sym "z")), 
+        -- Val 15
 
         Show "id(cv(z)) ==> " (Apply (Sym "id") (Formula (Sym "z"))), 
+        -- Minus (Sym "x") (Minus (Val 0) (Sym "y"))
 
         Show "rv(cv(z)) ==> " (Apply (Sym "rv") (Formula (Sym "z"))),
+        -- Val 15
 
         Show "z ==> " (Sym "z"),
 
@@ -46,12 +50,12 @@ prog2 = -- deferred evaluation and mutation
 
         Define (Lazy Z)  (Sym "min") (Defer (If (Less (Sym "x") (Sym "y")) (Sym "x") (Sym "y"))),
         Define    Z      (Sym "t00") (Sym "min"),
-        Show "t00 ==> " (Sym "t00"),
+        Show "t00 ==> " (Sym "t00"), -- 67
         Assign (Sym "y") (Minus (Sym "y") (Val 30)),
 
         Define    Z      (Sym "t01") (Sym "min"),
-        Show "t00 ==> " (Sym "t00"),
-        Show "t01 ==> " (Sym "t01")
+        Show "t00 ==> " (Sym "t00"), -- 67
+        Show "t01 ==> " (Sym "t01") -- 42
         
     ]
 
@@ -79,8 +83,8 @@ prog3 = -- Curried function application
 
         Define Z (Sym "x") (Apply (Apply (Sym "plus") (Val 42)) (Val 25)),
         Define Z (Sym "y") (Apply (Apply (Sym "minus") (Sym "x")) (Val 25)),
-        Show "x ==> " (Sym "x"),
-        Show "y ==> " (Sym "y")  
+        Show "x ==> " (Sym "x"), -- 67
+        Show "y ==> " (Sym "y")  -- 42
     ]
 
 prog4 = -- partial evaluation
@@ -110,8 +114,8 @@ prog4 = -- partial evaluation
 
         Define Z (Sym "x") (Apply (Sym "add25") (Val 42)),
         Define Z (Sym "y") (Apply (Sym "sub25") (Sym "x")),
-        Show "x ==> " (Sym "x"),
-        Show "y ==> " (Sym "y")
+        Show "x ==> " (Sym "x"), -- 67
+        Show "y ==> " (Sym "y")  -- 42
 
         
     ]
@@ -136,7 +140,7 @@ prog5 = -- scope + partial application with non-local context
         Show "x42 ==> " (Sym "x42"),
         Define (Fun Z Z) (Sym "m7") (Apply (Sym "nesty") (Val 7)),
         Assign (Sym "x") (Apply (Sym "m7") (Val 32)),
-        Show "x ==> " (Sym "x")
+        Show "x ==> " (Sym "x") -- 67
 
         
     ]
@@ -160,7 +164,7 @@ prog6 = -- like prog5 with lazy expressions
         Show "x ==> " $ Sym "x",
 
         Define (Lazy Z) (Sym "z42") (Apply (Apply (Sym "nesty") (Val 32)) (Val 7)),
-        Show "z67 ==> " $ Sym "z42",
+        Show "z42 ==> " $ Sym "z42",
         Assign (Sym "x") (Sym "z42"),
         Show "x ==> " $ Sym "x",
 
@@ -291,6 +295,14 @@ prog11 =
   , Show "rv(f(99)(100)) ==> " $ Sym "rv" `Apply` (Sym "f" `Apply` Val 99 `Apply` Val 100)
   ]
 
+prog12 =
+  [ Define (Lazy . Lazy $ Z) (Sym "z") $ Defer (Defer (Formula $ Sym "x"))
+  , Define Z (Sym "x") $ Val 42
+  , Define (Z `Fun` Z) (Sym "rv")
+    $ Lambda Z "x" $ Sym "x" 
+  , Show "rv(rv(z)) ==> " $ Sym "rv" `Apply` (Sym "rv" `Apply` Sym "z")
+  ]
+
 progA =
     [
     ]
@@ -338,8 +350,12 @@ fibo =
                 )
             )
         ),
-        Define Z (Sym "z") $ Apply (Sym "fibo") (Val 3), 
-        Show ""  $ Sym "z"
+        Define Z (Sym "i") $ Val 0,
+        While (Sym "i" `Less` Val 11) 
+          [ Show "i ==> " $ Sym "i"
+          , Show "fibo(i) ==> " $ Apply (Sym "fibo") (Sym "i")
+          , Assign (Sym "i") $ Sym "plus" `Apply` Sym "i" `Apply` Val 1 
+          ]
         
     ]
 
@@ -375,9 +391,7 @@ fiboIter =
             Show "cont ==> " (Sym "cont")
           ]
         ,
-
         Show "n1 ==> " (Sym "n1")
-        
     ]
 
 errorChecking = 

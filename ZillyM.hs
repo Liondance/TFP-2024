@@ -22,7 +22,11 @@ import Control.Exception
 
 cvalue :: E Env -> ZME (E Env)
 cvalue (Sym s) = getVar s
--- cvalue (ClosureF _ env e@(Sym s)) = local (const env) $ cvalue e
+{-
+whats the cvalue of a closure?
+cvalue (ClosureF _ env e@(Sym s)) = local (const env) $ cvalue e
+cvalue (ClosureF _ _ c@(ClosureF {})) = cvalue c
+-}
 cvalue a       = pure a
 
 
@@ -59,7 +63,7 @@ rvalue (Apply f x) = rvalue f >>= \f -> case f of
     x' <- rvalue x
     value <- liftIO $ newMVar (toDyn x') 
     let env' = M.insert v value env
-    local (const env') (rvalue' b)
+    local (const env') (rvalue b)
   e -> do
     s <- showE e
     throwM . BT $ "Can only apply functions, but instead got: " <> s
@@ -70,7 +74,7 @@ rvalue (If mb ma mc) = do
     x     -> do
       s <- showE x
       throwM . BT $ "Ifs first argument must be a value" <> s
-rvalue (Defer ma) = flip (ClosureF CEval) ma <$> ask
+rvalue (Defer ma) = flip ClosureF ma <$> ask
 rvalue (Less ma mb) = do
   a <- rvalue ma
   b <- rvalue mb
@@ -94,37 +98,31 @@ rvalue (Less ma mb) = do
 rvalue (Formula ma) = do 
   env <- ask
   ma' <- cvalue ma
-  pure $ ClosureF CEval env ma'
-  {- s <- showE ma
-  throwM . BT $ "Formulas should disappear when at rvalue-ing: " <> s  -}
-rvalue (ClosureF CEval env e) = local (const env) (rvalue e)
-rvalue (ClosureF CSet env e) = ClosureF CEval env <$> cvalue e
+  pure $ ClosureF env ma'
+rvalue (ClosureF env e) = local (const env) (rvalue e)
 
-
-rvalue' :: E Env -> ZM Env (E Env)
-rvalue' = rvalue
 
 run' :: Statement Env -> ZME Env
 run' (Define t a b)= case a of
   Sym varName -> do
-    b' <- rvalue' b
+    b' <- rvalue b
     defineVar t varName b'
   _ -> do
     s <- showE a
     throwM . BT $ "Bad l-value: " <> s
 run' (Assign a b)= case a of
   Sym varName -> do
-    b' <- rvalue' b
+    b' <- rvalue b
     assignVar varName b'
     ask
   _ -> do
     s <- showE a
     throwM . BT $ "Bad l-value: " <> s
 run' (Show s e) = do
-  e' <- showE =<< rvalue' e
+  e' <- showE =<< rvalue e
   liftIO . putStrLn $ s <> e'
   ask
-run' (Branch cond as bs) = rvalue' cond >>= \c -> case c of
+run' (Branch cond as bs) = rvalue cond >>= \c -> case c of
   Val n -> do
     oldEnv <- ask
     oldEnv <$ foldM (\e a -> local (const e) (run' a)) oldEnv
@@ -132,7 +130,7 @@ run' (Branch cond as bs) = rvalue' cond >>= \c -> case c of
   c     -> do
     s <- showE c
     throwM . BT $ "Branch conditions must be integer valued. But instead got: " <> s
-run' (While cond as) = rvalue' cond >>= \c -> case c of
+run' (While cond as) = rvalue cond >>= \c -> case c of
   Val n -> do
     oldEnv <- ask
     if n >= 0

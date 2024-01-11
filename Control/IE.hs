@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use lambda-case" #-}
+{-# LANGUAGE TypeApplications #-}
 module Control.IE where
 
 
@@ -15,10 +16,13 @@ import ADT.Stack as Stack hiding (empty)
 import ADT.Map (Map, insert, lookup, update)
 import qualified ADT.Map as Map
 -- 
+import ADT.Types 
 import Data.Dynamic
 import Control.Concurrent.MVar
 import Control.Exception
 import Data.Functor
+import Data.Traversable
+import Data.Tree
 ---------------------
 -- Type Definitions
 ---------------------
@@ -66,30 +70,87 @@ getVar varName = asks (lookup varName) >>= \a -> case a of
       Nothing     -> throwM . BT . concat $ ["Variable: ", show varName, ", Has an incompatible type."]
   Nothing         -> throwM $ VND varName
 
-showE :: E Env -> ZME String
-showE (Val n) = pure . concat $ ["Val ", show n]
-showE (Sym s) = pure . concat $ ["Sym ", show s]
-showE (Lambda t s e) = (\e' -> concat ["Lambda (", show t, ") ", show s, " (",  e', ")"]) <$> showE e
-showE (Apply f x)    = (\a b -> concat ["Apply (", a, ") (", b, ")"]) <$> showE f  <*> showE x
-showE (If a b c)     = (\a b c -> concat ["If (", a, ") (", b, ") (", c,")"]) 
-  <$> showE a 
-  <*> showE b
-  <*> showE c
-showE (Defer a)  = mappend "Defer " <$> showE a
-showE (Less a b) = (\a b -> concat ["Less (", a, ") (", b, ")"]) 
-  <$> showE a 
-  <*> showE b
-showE (Minus a b) = (\a b -> concat ["Minus (", a, ") (", b, ")"]) 
-  <$> showE a 
-  <*> showE b
-showE (Formula a)  = mappend "Formula " <$> showE a
-showE (ClosureV _ s e) = do
-  s' <- showE e
-  pure $ concat ["ClosureV env ", show s, " (", s', ")"]
-showE (ClosureF _ _ e) = do
-  s' <- showE e
-  pure $ concat ["ClosureF env ", " (", s', ")"]
+showE' :: Bool -> E Env -> ZME String
+showE' showEnv = fmap (drawTree . fmap getUnquotedText) . mapClosureEnv
+  where
+    mapClosureEnv :: E Env -> ZME (Tree UnquotedText)
+    mapClosureEnv (ClosureV e v b) = do 
+      e' <- for (Map.delete v e) $ \mvar -> do 
+        var <- (liftIO . readMVar) mvar
+        case fromDynamic var of
+          Just (ClosureV {}) -> pure $ UT "function"
+          Just a  -> UT <$> showE' showEnv a
+          Nothing -> error "impossible case"
+      b' <- mapClosureEnv b
+      pure $ Node 
+        { rootLabel = UT "ClosureV "
+        , subForest = 
+            [ Node (UT "env") $ if showEnv 
+              then 
+                Map.toList e' >>= \(key,item) ->
+                  pure $ Node (UT $ show key <> ":- " <> show item) []
+              else []
+            , Node (UT $ "arg: " <> v) []
+            , Node (UT "body") [b']
+            ]
+        }
+    mapClosureEnv (ClosureF env e) = do
+      env' <- for env $ \mvar -> do 
+        var <- (liftIO . readMVar) mvar
+        case fromDynamic var of 
+          Just a  -> UT <$> showE' showEnv a
+          Nothing -> error "impossible case"
+      e' <- mapClosureEnv e
+      pure $ Node 
+        { rootLabel = UT "ClosureF "
+        , subForest = 
+            [ Node (UT "env") $ if showEnv 
+                then Map.toList env' >>= \(key,item) ->
+                  pure $ Node (UT $ show key <> ":- " <> show item) []
+                else []
+            , Node (UT "body") [e']
+            ]
+        }
+    mapClosureEnv (Val x) = pure $ Node (UT . show $ Val @() x) []
+    mapClosureEnv (Sym x) = pure $ Node (UT . show $ Sym @() x) []
+    mapClosureEnv (Lambda t v b) = do
+      b' <- mapClosureEnv b
+      pure $ Node (UT "Lambda") 
+        [ Node (UT $ "Type: " <> show t) []
+        , Node (UT $ "Arg: " <> v) []
+        , Node (UT "body:") [b']
+        ]
+    mapClosureEnv (Apply f x) = do 
+      f' <- mapClosureEnv f
+      x' <- mapClosureEnv x
+      pure $ Node (UT "Apply") [Node (UT "function") [f'], Node (UT "arg") [x']]
 
+    mapClosureEnv (If b t f)  = do 
+      b' <- mapClosureEnv b
+      t' <- mapClosureEnv t
+      f' <- mapClosureEnv f
+      pure $ Node (UT "If") 
+        [ Node (UT "cond") [b']
+        , Node (UT "true branch") [t']
+        , Node (UT "false branch") [f']
+        ]
+    mapClosureEnv (Defer x)   = do 
+      x' <- mapClosureEnv x
+      pure $ Node (UT "Defer") [x']
+    mapClosureEnv (Less a b)  = do
+      a' <- mapClosureEnv a
+      b' <- mapClosureEnv b
+      pure $ Node (UT "Less") [a',b']
+    mapClosureEnv (Minus a b) = do
+      a' <- mapClosureEnv a
+      b' <- mapClosureEnv b
+      pure $ Node (UT "Minus") [a',b']
+    mapClosureEnv (Formula x) = do 
+      x' <- mapClosureEnv x
+      pure $ Node (UT "Formula") [x']
+
+showE :: E Env -> ZME String
+showE = showE' False
 
 ----------------------------
 -- Env related Exceptions
