@@ -3,14 +3,15 @@ module ZTest2 where
 import Debug.Trace
 
 -- Definitions
-import Zilly (Z,Symbol,T(..),E(..),Statement(..),Program, mkParens, rvalue, exec, State, empty)
+import Zilly (Z, Symbol, T(..), E(..), Statement(..), Program, rvalue, exec, State, empty)
+import Pretty (mkParens)
 
 -- Useful for parsing
 import Data.Functor
 import Control.Applicative hiding (optional, empty)
 import Control.Monad
 import Data.Functor.Identity
-import Text.Parsec hiding ((<|>),many,State(..))
+import Text.Parsec hiding ((<|>), many, State(..))
 import Data.Maybe (fromMaybe)
 
 -- Testing
@@ -235,9 +236,6 @@ parseZillyFile fp = do
     print r
 
 execStatementIO :: State -> Statement -> IO State
-execStatementIO store (Show s e) = do
-  putStrLn $ s <> show (rvalue store e)
-  pure store
 execStatementIO store action = pure $ exec store action
 
 execProgramIO :: State -> Program -> IO State
@@ -563,7 +561,6 @@ testAll = do
   putStrLn "testDefer"
   putStrLn "-------------------------"
   print =<< testDefer
-
 
   putStrLn "-------------------------"
   putStrLn "testDefine"

@@ -4,17 +4,17 @@
 module Control.IE where
 
 
-import ADT.Map
+
 import Control.ZM
-import ADT.ADT
+import ADT.ADTM
 
 import Prelude hiding (lookup)
 
 -- Stack
 import ADT.Stack as Stack hiding (empty)
 -- Map
-import ADT.Map (Map, insert, lookup, update)
-import qualified ADT.Map as Map
+import ADT.Map (Map)
+import ADT.Map qualified as Map 
 -- 
 import ADT.Types 
 import Data.Dynamic
@@ -34,6 +34,18 @@ type ZME = ZM Env
 ---------------------
 -- Utilities
 ---------------------
+
+insert :: Ord k => k -> v -> Map k v -> Map k v
+insert k v m = Map.insert m k v
+
+lookup :: Ord k => k -> Map k v -> Maybe v
+lookup = flip Map.lookup 
+
+update :: Ord k => k -> v -> Map k v -> Map k v
+update k v m = Map.update m k v
+
+delete :: Ord k => k -> Map k v -> Map k v
+delete = flip Map.delete
 
 defineVar :: T -> String -> E Env -> ZME Env
 defineVar _ varName varBody = 
@@ -75,7 +87,7 @@ showE' showEnv = fmap (drawTree . fmap getUnquotedText) . mapClosureEnv
   where
     mapClosureEnv :: E Env -> ZME (Tree UnquotedText)
     mapClosureEnv (ClosureV e v b) = do 
-      e' <- for (Map.delete v e) $ \mvar -> do 
+      e' <- for (delete v e) $ \mvar -> do 
         var <- (liftIO . readMVar) mvar
         case fromDynamic var of
           Just (ClosureV {}) -> pure $ UT "function"
@@ -155,6 +167,13 @@ showE = showE' False
 ----------------------------
 -- Env related Exceptions
 ----------------------------
+
+data HaltExecution = HaltE 
+
+instance Show HaltExecution where
+  show HaltE = "Halt"
+
+instance Exception HaltExecution
 
 newtype VariableAlreadyDefinedException = VAD String
 

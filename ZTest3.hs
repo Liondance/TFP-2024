@@ -1,7 +1,7 @@
 module ZTest3 where
 
 import ZillyM
-import ADT.ADT
+import ADT.ADTM
 
 
 prog1 = -- cvalue, rvalue, and identity

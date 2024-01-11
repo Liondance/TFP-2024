@@ -8,14 +8,18 @@ module ZillyM where
 
 import Control.ZM hiding (handle)
 import Control.IE
-import ADT.ADT
+import ADT.ADTM
 import ADT.Map qualified as M
+import ADT.Map (Map)
 import Data.Functor
 import Data.Foldable (traverse_)
 import Control.Monad
 import Data.Dynamic
 import Control.Concurrent.MVar
 import Control.Exception
+
+
+
 --
 -- Runtime
 --
@@ -62,7 +66,7 @@ rvalue (Apply f x) = rvalue f >>= \f -> case f of
     s0 <- showE x
     x' <- rvalue x
     value <- liftIO $ newMVar (toDyn x') 
-    let env' = M.insert v value env
+    let env' = insert v value env
     local (const env') (rvalue b)
   e -> do
     s <- showE e
@@ -141,6 +145,7 @@ run' (While cond as) = rvalue cond >>= \c -> case c of
   c     -> do
     s <- showE c
     throwM . BT $ "While conditions must be integer valued. But instead got: " <> s
+run' Halt = throwM HaltE
 
 run :: Program Env -> IO ()
 run = handle @SomeException print . void . foldM (\e a -> runZillyM (run' a) e) M.empty

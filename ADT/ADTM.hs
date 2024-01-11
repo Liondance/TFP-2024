@@ -1,4 +1,4 @@
-module ADT.ADT where
+module ADT.ADTM where
 
 import Data.Dynamic ( Typeable )
 
@@ -39,8 +39,9 @@ data Statement e =
       Define T (E e) (E e)      -- ^ <type> <symbol> := <expression>;
     | Assign (E e) (E e)        -- ^ <symbol> := <expression>;
     | Show String (E e)         -- ^ magic form: show(<string>, <exp>) prints <string> ==> rvalue(<exp>)
-    | Branch (E e) [Statement e] [Statement e]
-    | While (E e) [Statement e]
+    | Branch (E e) [Statement e] [Statement e] -- ^ Branch <expression> {<statements when E evals to true>} {<statements when E evals to false>}
+    | While (E e) [Statement e] -- ^ While <expression> {statements}
+    | Halt                      -- ^ Halt
     deriving Typeable
 -- Program
 type Program e = [Statement e]
